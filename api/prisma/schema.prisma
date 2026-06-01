@@ -99,3 +99,4 @@ model Order {
 
   @@map("orders")
 }
+
