@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -10,4 +5,129 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum UserRole {
+  USER
+  CUSTOMER
+  STORE_ADMIN
+  SUPER_ADMIN
+  ADMIN
+}
+
+enum UserTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  REFRESH_TOKEN
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  DELIVERED
+  CANCELLED
+  SHIPPED
+  COMPLETED
+}
+
+model User {
+  id             Int         @id @default(autoincrement())
+  email          String      @unique
+  password       String
+  name           String?
+  phone          String?
+  isVerified     Boolean     @default(false) @map("is_verified")
+  profilePicture String?     @map("profile_picture")
+  role           UserRole    @default(CUSTOMER)
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  cartItem       CartItem[]
+  address        Address[]
+  order          Order[]
+  tokens         UserToken[]
+
+  @@map("users")
+}
+
+model UserToken {
+  id        Int           @id @default(autoincrement())
+  userId    Int           @map("user_id")
+  token     String        @unique
+  type      UserTokenType
+  expiredAt DateTime      @map("expired_at")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_tokens")
+}
+
+model Product {
+  id        Int        @id @default(autoincrement())
+  name      String
+  price     Int
+  quantity  Int
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  cartItem  CartItem[]
+  order     Order[]
+
+  @@map("products")
+}
+
+model CartItem {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  productId   Int      @map("product_id")
+  productName String   @map("product_name")
+  quantity    Int
+  totalPrice  Int      @map("total_price")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("cart_items")
+}
+
+model Warehouse {
+  id        Int      @id @default(autoincrement())
+  name      String
+  latitude  Decimal  @db.Decimal(10, 7)
+  longitude Decimal  @db.Decimal(10, 7)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("warehouses")
+}
+
+model Address {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  address        String
+  city           String
+  phone          String
+  addressDefault Boolean  @default(false) @map("address_default")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("addresses")
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  userId      Int         @map("user_id")
+  productId   Int         @map("product_id")
+  productName String      @map("product_name")
+  quantity    Int
+  totalPrice  Int         @map("total_price")
+  orderStatus OrderStatus @default(PENDING)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("orders")
 }
