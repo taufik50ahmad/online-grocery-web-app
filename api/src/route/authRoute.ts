@@ -11,12 +11,14 @@ import {
 
 const router = Router();
 
+router.get("/me", me);
+
 router.post("/register", register);
 router.post("/verify-email", verifyEmail);
 router.post("/login", login);
-router.get("/me", me);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", confirmResetPassword);
+
 router.put("/profile", updateProfile);
 
 export default router;

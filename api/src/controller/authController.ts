@@ -9,6 +9,47 @@ import {
   verifyEmailAndSetPassword,
   verifyJwtToken,
 } from "../service/authService.js";
+import { z } from "zod";
+
+const registerSchema = z.object({
+  email: z.string()
+  .min(1, "email is required")
+  .email("email invalid adress"),
+  name: z.string().min(2).max(100).optional(),
+});
+
+const loginSchema = z.object({
+  email: z.string().
+  min(1, "email is required")
+  .email("email invalid adress"),
+  password: z.
+  string()
+  .min(1, "password must be at least 6 characters")
+  .min(8, "must be at least 8 characters"),
+});
+
+const verifyEmailSchema = z.object({
+  token: z.string()
+  .min(1, "Token is required"),
+  password: z
+    .string()
+    .min(1, "Password is required")
+    .min(8, "Password must be at least 8 characters long"),
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string()
+  .min(1, "Email is needed")
+  .email("Invalid email address"),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Token is required"),
+  password: z
+    .string()
+    .min(1, "Password is required")
+    .min(8, "Password must be at least 8 characters long"),
+});
 
 function getTokenFromHeader(req: Request) {
   const authorization = req.headers.authorization;
@@ -22,13 +63,15 @@ function getTokenFromHeader(req: Request) {
 
 export async function register(req: Request, res: Response) {
   try {
-    const { email, name } = req.body;
+    const validation = registerSchema.safeParse(req.body);
 
-    if (!email) {
-      return res.status(400).json({
-        message: "Email wajib diisi",
-      });
-    }
+if (!validation.success) {
+  return res.status(400).json({
+    message: validation.error.issues[0]?.message || "Invalid request",
+  });
+}
+
+const { email, name } = validation.data;
 
     const result = await registerUser(email, name);
 
@@ -45,13 +88,15 @@ export async function register(req: Request, res: Response) {
 
 export async function verifyEmail(req: Request, res: Response) {
   try {
-    const { token, password } = req.body;
+    const validation = verifyEmailSchema.safeParse(req.body);
 
-    if (!token || !password) {
-      return res.status(400).json({
-        message: "Token dan password wajib diisi",
-      });
-    }
+if (!validation.success) {
+  return res.status(400).json({
+    message: validation.error.issues[0]?.message || "Invalid request",
+  });
+}
+
+const { token, password } = validation.data;
 
     const result = await verifyEmailAndSetPassword(token, password);
 
@@ -66,13 +111,15 @@ export async function verifyEmail(req: Request, res: Response) {
 
 export async function login(req: Request, res: Response) {
   try {
-    const { email, password } = req.body;
+    const validation = loginSchema.safeParse(req.body);
 
-    if (!email || !password) {
-      return res.status(400).json({
-        message: "Email dan password wajib diisi",
-      });
-    }
+if (!validation.success) {
+  return res.status(400).json({
+    message: validation.error.issues[0]?.message || "Invalid request",
+  });
+}
+
+const { email, password } = validation.data;
 
     const result = await loginUser(email, password);
 
@@ -115,13 +162,15 @@ export async function me(req: Request, res: Response) {
 
 export async function forgotPassword(req: Request, res: Response) {
   try {
-    const { email } = req.body;
+    const validation = forgotPasswordSchema.safeParse(req.body);
 
-    if (!email) {
-      return res.status(400).json({
-        message: "Email wajib diisi",
-      });
-    }
+if (!validation.success) {
+  return res.status(400).json({
+    message: validation.error.issues[0]?.message || "Invalid request",
+  });
+}
+
+const { email } = validation.data;
 
     const result = await requestResetPassword(email);
 
@@ -139,13 +188,15 @@ export async function forgotPassword(req: Request, res: Response) {
 
 export async function confirmResetPassword(req: Request, res: Response) {
   try {
-    const { token, password } = req.body;
+    const validation = resetPasswordSchema.safeParse(req.body);
 
-    if (!token || !password) {
-      return res.status(400).json({
-        message: "Token dan password wajib diisi",
-      });
-    }
+if (!validation.success) {
+  return res.status(400).json({
+    message: validation.error.issues[0]?.message || "Invalid request",
+  });
+}
+
+const { token, password } = validation.data;
 
     const result = await resetPassword(token, password);
 
