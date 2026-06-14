@@ -64,6 +64,44 @@ export default function ProductPage() {
     fetchCart()
   }, [])
 
+  async function deleteDecreaseCart(productId: number, quantity: number){
+    await fetch(`http://localhost:9000/cart/${productId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId: 1,
+        productId: productId,
+        quantity: quantity,
+      }),
+    })
+
+    const response = await fetch("http://localhost:9000/get/cart")
+    const result = await response.json()
+
+    setCart(result.data)
+  }
+
+  async function increaseCart(productId: number){
+    await fetch("http://localhost:9000/add/cart", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId: 1,
+        productId: productId,
+        quantity: 1,
+      }),
+    })
+
+    const response = await fetch("http://localhost:9000/get/cart")
+    const result = await response.json()
+
+    setCart(result.data)
+  }
+
   return (
     <>
       <h1>Products</h1>
@@ -89,6 +127,12 @@ export default function ProductPage() {
         <div key={item.id}>
           <h3>{item.productName}</h3>
           <p>Quantity: {item.quantity}</p>
+          <button onClick={() => deleteDecreaseCart(item.id, item.quantity)}>
+            -
+          </button>
+          <button onClick={() => increaseCart(item.productId)}>
+            +
+          </button>
           <p>Total Price: {item.totalPrice}</p>
         </div>
       ))}

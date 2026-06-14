@@ -23,16 +23,19 @@ export default async function addtoCartService(productId: number, quantity: numb
             where: {
                 productId: products.id,
                 userId: userId
+            },
+            include:{
+                product: true
             }
         })
 
         if(existingCart){
+            const newQuantity = existingCart.quantity + 1
             return await prisma.cartItem.update({
                 where: {id: existingCart.id},
                 data: {
-                    quantity: {
-                        increment: 1
-                    }
+                    quantity: newQuantity,
+                    totalPrice: existingCart.product.price * newQuantity
                 }
             })
         }
@@ -42,7 +45,7 @@ export default async function addtoCartService(productId: number, quantity: numb
                 productId: products.id,
                 userId: 1,
                 productName: products.name,
-                quantity: 1,
+                quantity: quantity,
                 totalPrice: products.price * quantity,
             },
         })
