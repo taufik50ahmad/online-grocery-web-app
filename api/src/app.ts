@@ -3,7 +3,8 @@ import "dotenv/config"
 import cors from "cors";
 import productRoute from "./route/addtocartRoute.js"
 import cartRoute from "./route/getCartRoute.js"
-import deleteDecreaseCartRoute from "./route/deleteDecreaseCartRoute.js"
+import deleteDecreaseCartRoute from "./route/deleteCartRoute.js"
+import decreaseCartRoute from "./route/decreaseCartRoute.js"
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +21,8 @@ app.use(productRoute)
 app.use(cartRoute)
 
 app.use(deleteDecreaseCartRoute)
+
+app.use(decreaseCartRoute)
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

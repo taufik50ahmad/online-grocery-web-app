@@ -1,27 +1,17 @@
-import prisma from "../lib/prisma.js";
+import prisma from "../lib/prisma.js"
 
-export default async function deleteDecreaseCartService(id: number) {
+export default async function decreaseCartService(id: number){
     const cartItem = await prisma.cartItem.findUnique({
-        where: {
+        where:{
             id
         },
-        include: {
+        include:{
             product: true
         }
     })
-    
+
     if(!cartItem){
         throw new Error("Cart item not found")
-    }
-
-    if(cartItem.quantity === 1){
-        const deletedCart = await prisma.cartItem.delete({
-            where:{
-                id
-            }
-        })
-
-        return deletedCart
     }
 
     if(cartItem.quantity > 1){

@@ -64,7 +64,7 @@ export default function ProductPage() {
     fetchCart()
   }, [])
 
-  async function deleteDecreaseCart(productId: number, quantity: number){
+  async function deleteCart(productId: number){
     await fetch(`http://localhost:9000/cart/${productId}`, {
       method: "DELETE",
       headers: {
@@ -72,8 +72,7 @@ export default function ProductPage() {
       },
       body: JSON.stringify({
         userId: 1,
-        productId: productId,
-        quantity: quantity,
+        productId: productId
       }),
     })
 
@@ -93,6 +92,24 @@ export default function ProductPage() {
         userId: 1,
         productId: productId,
         quantity: 1,
+      }),
+    })
+
+    const response = await fetch("http://localhost:9000/get/cart")
+    const result = await response.json()
+
+    setCart(result.data)
+  }
+
+  async function decreaseCart(id: number){
+    await fetch(`http://localhost:9000/cart/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId: 1,
+        productId: id
       }),
     })
 
@@ -127,7 +144,7 @@ export default function ProductPage() {
         <div key={item.id}>
           <h3>{item.productName}</h3>
           <p>Quantity: {item.quantity}</p>
-          <button onClick={() => deleteDecreaseCart(item.id, item.quantity)}>
+          <button onClick={() => item.quantity === 1 ? deleteCart(item.id) : decreaseCart(item.id)}>
             -
           </button>
           <button onClick={() => increaseCart(item.productId)}>
