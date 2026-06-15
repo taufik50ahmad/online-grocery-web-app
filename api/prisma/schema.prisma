@@ -7,6 +7,20 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserRole {
+  USER
+  CUSTOMER
+  STORE_ADMIN
+  SUPER_ADMIN
+  ADMIN
+}
+
+enum UserTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  REFRESH_TOKEN
+}
+
 enum OrderStatus {
   PENDING
   ACCEPTED
@@ -18,17 +32,35 @@ enum OrderStatus {
 }
 
 model User {
-  id        Int        @id @default(autoincrement())
-  email     String     @unique
-  password  String
-  role      String     @default("user")
-  createdAt DateTime   @map("created_at") @default(now())
-  updatedAt DateTime   @map("updated_at") @updatedAt
-  cartItems CartItem[]
-  address   Address[]
-  order     Order[]
+  id             Int         @id @default(autoincrement())
+  email          String      @unique
+  password       String
+  name           String?
+  phone          String?
+  isVerified     Boolean     @default(false) @map("is_verified")
+  profilePicture String?     @map("profile_picture")
+  role           UserRole    @default(CUSTOMER)
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  cartItem       CartItem[]
+  address        Address[]
+  order          Order[]
+  tokens         UserToken[]
 
   @@map("users")
+}
+
+model UserToken {
+  id        Int           @id @default(autoincrement())
+  userId    Int           @map("user_id")
+  token     String        @unique
+  type      UserTokenType
+  expiredAt DateTime      @map("expired_at")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_tokens")
 }
 
 model Product {
@@ -36,8 +68,8 @@ model Product {
   name      String
   price     Int
   quantity  Int
-  createdAt DateTime   @map("created_at") @default(now())
-  updatedAt DateTime   @map("updated_at") @updatedAt
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
   cartItem  CartItem[]
   order     Order[]
 
@@ -51,8 +83,8 @@ model CartItem {
   productName String   @map("product_name")
   quantity    Int
   totalPrice  Int      @map("total_price")
-  createdAt   DateTime @map("created_at") @default(now())
-  updatedAt   DateTime @map("updated_at") @updatedAt
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
@@ -64,8 +96,8 @@ model Warehouse {
   name      String
   latitude  Decimal  @db.Decimal(10, 7)
   longitude Decimal  @db.Decimal(10, 7)
-  createdAt DateTime @map("created_at") @default(now())
-  updatedAt DateTime @map("updated_at") @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("warehouses")
 }
@@ -76,9 +108,9 @@ model Address {
   address        String
   city           String
   phone          String
-  addressDefault Boolean  @map("address_default") @default(false)
-  createdAt      DateTime @map("created_at") @default(now())
-  updatedAt      DateTime @map("updated_at") @updatedAt
+  addressDefault Boolean  @default(false) @map("address_default")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("addresses")
@@ -92,11 +124,10 @@ model Order {
   quantity    Int
   totalPrice  Int         @map("total_price")
   orderStatus OrderStatus @default(PENDING)
-  createdAt   DateTime    @map("created_at") @default(now())
-  updatedAt   DateTime    @map("updated_at") @updatedAt
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("orders")
 }
-
