@@ -51,6 +51,4 @@ export default async function addtoCartService(productId: number, quantity: numb
         })
 
         return cart
-}export default async function (){
-    
 }

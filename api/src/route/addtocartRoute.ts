@@ -11,6 +11,6 @@ import addtocartController from "../controller/addtocartController.js";
 
 const router = express.Router();
 
-router.post("/add", addtocartController)
+router.post("/add/cart", addtocartController)
 
 export default router;
