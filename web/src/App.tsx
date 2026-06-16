@@ -9,21 +9,28 @@ import { Footer } from "./components/Footer";
 import { defaultStoreId, stores } from "./data/stores";
 import { products } from "./data/products";
 import { findNearestStore } from "./utils/distance";
+import { AuthSection } from "./components/authSection";
 
 export default function App() {
-  const defaultStore = stores.find((store) => store.id === defaultStoreId) || stores[0];
+  const defaultStore =
+    stores.find((store) => store.id === defaultStoreId) || stores[0];
 
   const [query, setQuery] = useState("");
+  const [showAuth, setShowAuth] = useState(false);
   const [selectedStore, setSelectedStore] = useState(defaultStore);
   const [distanceKm, setDistanceKm] = useState<number | undefined>();
   const [isOutOfRange, setIsOutOfRange] = useState(false);
-  const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "granted" | "denied" | "error">("idle");
+  const [locationStatus, setLocationStatus] = useState<
+    "idle" | "loading" | "granted" | "denied" | "error"
+  >("idle");
 
   const visibleProducts = useMemo(() => {
     return products.filter((product) => {
       const matchStore = product.storeId === selectedStore.id;
       const keyword = query.toLowerCase();
-      const matchSearch = product.name.toLowerCase().includes(keyword) || product.category.toLowerCase().includes(keyword);
+      const matchSearch =
+        product.name.toLowerCase().includes(keyword) ||
+        product.category.toLowerCase().includes(keyword);
 
       return matchStore && matchSearch;
     });
@@ -47,7 +54,9 @@ export default function App() {
 
         setSelectedStore(nearest.store);
         setDistanceKm(nearest.distanceKm);
-        setIsOutOfRange(nearest.distanceKm > nearest.store.maxServiceDistanceKm);
+        setIsOutOfRange(
+          nearest.distanceKm > nearest.store.maxServiceDistanceKm,
+        );
         setLocationStatus("granted");
       },
       () => {
@@ -55,13 +64,19 @@ export default function App() {
         setDistanceKm(undefined);
         setIsOutOfRange(false);
         setLocationStatus("denied");
-      }
+      },
     );
   }
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <Navbar selectedStore={selectedStore} query={query} setQuery={setQuery} />
+      <Navbar
+        selectedStore={selectedStore}
+        query={query}
+        setQuery={setQuery}
+        onAuthClick={() => setShowAuth((prev) => !prev)}
+      />
+      {showAuth && <AuthSection />}
       <LocationStoreCard
         selectedStore={selectedStore}
         distanceKm={distanceKm}
@@ -72,7 +87,11 @@ export default function App() {
       <HeroCarousel />
       <CategoryGrid />
       <PromoSection />
-      <ProductList products={visibleProducts} selectedStore={selectedStore} disabled={isOutOfRange} />
+      <ProductList
+        products={visibleProducts}
+        selectedStore={selectedStore}
+        disabled={isOutOfRange}
+      />
       <Footer />
     </main>
   );

@@ -3,11 +3,13 @@ import {
   getProfile,
   loginUser,
   registerUser,
+  registerStoreAdmin,
   requestResetPassword,
   resetPassword,
   updateProfile as updateUserProfileService,
   verifyEmailAndSetPassword,
   verifyJwtToken,
+  resendVerificationEmail as resendVerificationEmailService,
 } from "../service/authService.js";
 import { z } from "zod";
 
@@ -49,6 +51,10 @@ const resetPasswordSchema = z.object({
     .string()
     .min(1, "Password is required")
     .min(8, "Password must be at least 8 characters long"),
+});
+
+const resendVerificationSchema = z.object({
+  email: z.string().min(1, "Email is required").email("Invalid email address"),
 });
 
 function getTokenFromHeader(req: Request) {
@@ -160,6 +166,31 @@ export async function me(req: Request, res: Response) {
   }
 }
 
+export async function resendVerificationEmail(req: Request, res: Response) {
+  try {
+    const validation = resendVerificationSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        message: validation.error.issues[0]?.message || "Invalid request",
+      });
+    }
+
+    const { email } = validation.data;
+
+    const result = await resendVerificationEmailService(email);
+
+    return res.json(result);
+  } catch (error) {
+    return res.status(400).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Gagal mengirim ulang verification email",
+    });
+  }
+}
+
 export async function forgotPassword(req: Request, res: Response) {
   try {
     const validation = forgotPasswordSchema.safeParse(req.body);
@@ -236,6 +267,38 @@ export async function updateProfile(req: Request, res: Response) {
     return res.status(500).json({
       message: "Gagal update profile",
       error: error instanceof Error ? error.message : error,
+    });
+  }
+}
+
+type AuthenticatedRequest = Request & {
+  user?: {
+    id: number;
+    role: string;
+    isVerified: boolean;
+  };
+};
+
+export async function registerAsStoreAdmin(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        message: "Silakan login terlebih dahulu",
+      });
+    }
+
+    const result = await registerStoreAdmin(req.user.id);
+
+    return res.json(result);
+  } catch (error) {
+    return res.status(400).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Gagal register sebagai Store Admin",
     });
   }
 }

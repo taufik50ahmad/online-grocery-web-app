@@ -65,6 +65,46 @@ export async function registerUser(email: string, name?: string) {
   };
 }
 
+//store admin diluar user
+export async function registerStoreAdmin(userId: number) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new Error("User tidak ditemukan");
+  }
+
+  if (!user.isVerified) {
+    throw new Error("Silakan verifikasi email terlebih dahulu");
+  }
+
+  if (user.role === "STORE_ADMIN") {
+    throw new Error("User sudah terdaftar sebagai Store Admin");
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      role: "STORE_ADMIN",
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      phone: true,
+      profilePicture: true,
+      isVerified: true,
+      role: true,
+    },
+  });
+
+  return {
+    message: "Berhasil register sebagai Store Admin",
+    user: updatedUser,
+  };
+}
+
 export async function verifyEmailAndSetPassword(
   token: string,
   password: string,
@@ -267,6 +307,45 @@ export async function updateProfile(
   return user;
 }
 
+export async function resendVerificationEmail(email: string) {
+  const user = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+
+  if (!user) {
+    throw new Error("User tidak ditemukan");
+  }
+
+  if (user.isVerified) {
+    throw new Error("Email sudah terverifikasi");
+  }
+
+  await prisma.userToken.deleteMany({
+    where: {
+      userId: user.id,
+      type: "EMAIL_VERIFICATION",
+    },
+  });
+
+  const token = crypto.randomUUID();
+
+  await prisma.userToken.create({
+    data: {
+      userId: user.id,
+      token,
+      type: "EMAIL_VERIFICATION",
+      expiredAt: new Date(Date.now() + 60 * 60 * 1000),
+    },
+  });
+
+  return {
+    message: "Verification email berhasil dikirim ulang.",
+    verificationToken: token,
+  };
+}
+
 export function verifyJwtToken(token: string) {
   return jwt.verify(token, process.env.JWT_SECRET as string) as {
     id: number;
@@ -274,3 +353,4 @@ export function verifyJwtToken(token: string) {
     role: string;
   };
 }
+

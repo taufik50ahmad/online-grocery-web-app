@@ -112,9 +112,10 @@ type NavbarProps = {
   selectedStore?: Store;
   query: string;
   setQuery: (value: string) => void;
+  onAuthClick: () => void;
 };
 
-export function Navbar({ selectedStore, query, setQuery }: NavbarProps) {
+export function Navbar({ selectedStore, query, setQuery, onAuthClick }: NavbarProps) {
   return (
     <header className="sticky top-0 z-50 border-b border-red-100 bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 lg:px-8">
@@ -155,12 +156,20 @@ export function Navbar({ selectedStore, query, setQuery }: NavbarProps) {
         <button className="rounded-2xl bg-red-600 p-3 text-white">
           <ShoppingCart size={19} />
         </button>
-        <button className="hidden rounded-2xl bg-slate-100 p-3 text-slate-700 md:block">
-          <UserRound size={19} />
+        <button
+        type="button"
+        className="hidden rounded-2xl bg-slate-100 p-3 text-slate-700 md:block" 
+        onClick={onAuthClick}>
+        <UserRound size={19} />
         </button>
-        <button className="rounded-2xl border border-slate-200 p-3 md:hidden">
-          <Menu size={19} />
-        </button>
+        
+        <button
+  type="button"
+  onClick={onAuthClick}
+  className="rounded-2xl border border-slate-200 p-3 md:hidden"
+>
+  <Menu size={19} />
+</button>
       </div>
     </header>
   );

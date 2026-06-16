@@ -46,6 +46,7 @@ model User {
   address        Address[]
   order          Order[]
   tokens         UserToken[]
+  managedStores  Store[]     @relation("StoreAdminStores")
 
   @@map("users")
 }
@@ -89,6 +90,22 @@ model CartItem {
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("cart_items")
+}
+
+model Store {
+  id           Int      @id @default(autoincrement())
+  name         String
+  address      String?
+  city         String?
+  latitude     Decimal  @db.Decimal(10, 7)
+  longitude    Decimal  @db.Decimal(10, 7)
+  storeAdminId Int?     @map("store_admin_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  storeAdmin User? @relation("StoreAdminStores", fields: [storeAdminId], references: [id], onDelete: SetNull)
+
+  @@map("stores")
 }
 
 model Warehouse {
