@@ -49,6 +49,20 @@ export async function updateStore(
   return response.data;
 }
 
+export async function registerMyStore(data: {
+  name: string;
+  address?: string;
+  city?: string;
+  latitude: number;
+  longitude: number;
+}) {
+  const response = await axios.post(`${API_URL}/register-my-store`, data, {
+    headers: getAuthHeader(),
+  });
+
+  return response.data;
+}
+
 export async function deleteStore(id: number) {
   const response = await axios.delete(`${API_URL}/${id}`, {
     headers: getAuthHeader(),

@@ -4,7 +4,6 @@ import {
   getProfile,
   loginUser,
   registerUser,
-  registerStoreAdmin,
   updateProfile,
   verifyEmail,
   resendVerificationEmail,
@@ -12,6 +11,7 @@ import {
   resetPassword,
 } from "../services/authService";
 import { StoreManagement } from "./storeManagement";
+import { registerMyStore } from "../services/storeService";
 
 type User = {
   id: number;
@@ -36,6 +36,13 @@ export function AuthSection() {
   const [mode, setMode] = useState<"login" | "register" | "verify" | "forgot" | "reset">("login");
   const [token, setToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
+
+  const [showCreateStore, setShowCreateStore] = useState(false);
+  const [storeName, setStoreName] = useState("");
+  const [storeAddress, setStoreAddress] = useState("");
+  const [storeCity, setStoreCity] = useState("");
+  const [storeLatitude, setStoreLatitude] = useState("");
+  const [storeLongitude, setStoreLongitude] = useState("");
 
   async function loadProfile() {
     try {
@@ -130,22 +137,6 @@ async function handleResendVerificationEmail() {
 }
   }
 
-  async function handleRegisterStoreAdmin() {
-  try {
-    const result = await registerStoreAdmin();
-
-    alert(result.message || "Berhasil register sebagai Store Admin");
-    setUser(result.user);
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      alert(error.response?.data?.message || "Gagal register Store Admin");
-      return;
-    }
-
-    alert("Gagal register Store Admin");
-  }
-}
-
   function handleLogout() {
     localStorage.removeItem("token");
     setUser(null);
@@ -171,6 +162,31 @@ async function handleResendVerificationEmail() {
     }
 
     alert("Gagal verifikasi email");
+  }
+}
+
+async function handleCreateMyStore(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+
+  try {
+    const result = await registerMyStore({
+      name: storeName,
+      address: storeAddress,
+      city: storeCity,
+      latitude: Number(storeLatitude),
+      longitude: Number(storeLongitude),
+    });
+
+    alert(result.message || "Store berhasil dibuat");
+    setUser(result.user);
+    setShowCreateStore(false);
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      alert(error.response?.data?.message || "Gagal membuat store");
+      return;
+    }
+
+    alert("Gagal membuat store");
   }
 }
 
@@ -239,14 +255,77 @@ async function handleResetPassword(event: FormEvent<HTMLFormElement>) {
           </button>
         </div>
 
-{user.role === "CUSTOMER" && (
+{user.role === "CUSTOMER" && !showCreateStore && (
   <button
     type="button"
-    onClick={handleRegisterStoreAdmin}
+    onClick={() => setShowCreateStore(true)}
     className="mb-4 w-full rounded bg-blue-600 px-4 py-2 text-white"
   >
-    Register as Store Admin
+    Create My Store
   </button>
+)}
+
+{user.role === "CUSTOMER" && showCreateStore && (
+  <form onSubmit={handleCreateMyStore} className="mb-4 rounded border p-4">
+    <h3 className="mb-3 font-semibold">Create My Store</h3>
+
+    <input
+      type="text"
+      placeholder="Store name"
+      className="mb-3 w-full rounded border px-3 py-2"
+      value={storeName}
+      onChange={(event) => setStoreName(event.target.value)}
+    />
+
+    <input
+      type="text"
+      placeholder="Address"
+      className="mb-3 w-full rounded border px-3 py-2"
+      value={storeAddress}
+      onChange={(event) => setStoreAddress(event.target.value)}
+    />
+
+    <input
+      type="text"
+      placeholder="City"
+      className="mb-3 w-full rounded border px-3 py-2"
+      value={storeCity}
+      onChange={(event) => setStoreCity(event.target.value)}
+    />
+
+    <input
+      type="number"
+      step="any"
+      placeholder="Latitude"
+      className="mb-3 w-full rounded border px-3 py-2"
+      value={storeLatitude}
+      onChange={(event) => setStoreLatitude(event.target.value)}
+    />
+
+    <input
+      type="number"
+      step="any"
+      placeholder="Longitude"
+      className="mb-4 w-full rounded border px-3 py-2"
+      value={storeLongitude}
+      onChange={(event) => setStoreLongitude(event.target.value)}
+    />
+
+    <button
+      type="submit"
+      className="w-full rounded bg-green-600 px-4 py-2 text-white"
+    >
+      Submit Store
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setShowCreateStore(false)}
+      className="mt-3 w-full rounded bg-slate-500 px-4 py-2 text-white"
+    >
+      Cancel
+    </button>
+  </form>
 )}
 
         <form onSubmit={handleUpdateProfile}>

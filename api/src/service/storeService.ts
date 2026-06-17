@@ -60,6 +60,77 @@ export async function deleteStore(id: number) {
   });
 }
 
+export async function registerMyStore(
+  userId: number,
+  data: {
+    name: string;
+    address?: string;
+    city?: string;
+    latitude: number;
+    longitude: number;
+  }
+) {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    include: {
+      managedStores: true,
+    },
+  });
+
+  if (!user) {
+    throw new Error("User tidak ditemukan");
+  }
+
+  if (!user.isVerified) {
+    throw new Error("Silakan verifikasi email terlebih dahulu");
+  }
+
+  if (user.role === "SUPER_ADMIN") {
+    throw new Error("Super Admin tidak perlu register store");
+  }
+
+  if (user.role === "STORE_ADMIN" || user.managedStores.length > 0) {
+    throw new Error("User sudah memiliki store");
+  }
+
+  const store = await prisma.store.create({
+    data: {
+      name: data.name,
+      address: data.address,
+      city: data.city,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      storeAdminId: userId,
+    },
+  });
+
+  const updatedUser = await prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      role: "STORE_ADMIN",
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      phone: true,
+      profilePicture: true,
+      isVerified: true,
+      role: true,
+    },
+  });
+
+  return {
+    message: "Store berhasil dibuat. Akun kamu sekarang menjadi Store Admin.",
+    store,
+    user: updatedUser,
+  };
+}
+
 export async function assignStoreAdmin(storeId: number, userId: number) {
   const user = await prisma.user.findUnique({
     where: { id: userId },

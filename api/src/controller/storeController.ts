@@ -5,6 +5,7 @@ import {
   createStore,
   deleteStore,
   getStores,
+  registerMyStore,
   updateStore,
 } from "../service/storeService.js";
 
@@ -84,6 +85,35 @@ export async function updateStoreData(req: Request, res: Response) {
   }
 }
 
+export async function registerMyStoreData(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        message: "Silakan login terlebih dahulu",
+      });
+    }
+
+    const validation = storeSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        message: validation.error.issues[0]?.message || "Invalid request",
+      });
+    }
+
+    const result = await registerMyStore(req.user.id, validation.data);
+
+    return res.status(201).json(result);
+  } catch (error) {
+    return res.status(400).json({
+      message: error instanceof Error ? error.message : "Gagal register store",
+    });
+  }
+}
+
 export async function deleteStoreData(req: Request, res: Response) {
   try {
     const storeId = Number(req.params.id);
@@ -125,3 +155,28 @@ export async function assignAdminToStore(req: Request, res: Response) {
     });
   }
 }
+
+type CreateStoreInput = {
+  name: string;
+  address?: string;
+  city?: string;
+  latitude: number;
+  longitude: number;
+};
+
+type UpdateStoreInput = {
+  name?: string;
+  address?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+};
+
+type AuthenticatedRequest = Request & {
+  user?: {
+    id: number;
+    role: string;
+    isVerified: boolean;
+  };
+};
+
