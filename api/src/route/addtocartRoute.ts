@@ -4,9 +4,8 @@ import {
   requireAuth,
   requireVerified,
 } from "../middleware/authMiddleware.js";
-
 const router = express.Router();
 
-router.post("/add", requireAuth, requireVerified, addtocartController);
+router.post("/add/cart", addtocartController)
 
 export default router;

@@ -98,8 +98,8 @@ export async function registerMyStore(
   const store = await prisma.store.create({
     data: {
       name: data.name,
-      address: data.address,
-      city: data.city,
+      address: data.address ?? null,
+      city: data.city ?? null,
       latitude: data.latitude,
       longitude: data.longitude,
       storeAdminId: userId,

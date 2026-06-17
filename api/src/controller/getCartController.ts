@@ -1,15 +1,13 @@
-import type { Request, Response } from "express";
-import addtocartService from "../service/addtocartService.js";
+import { getCartService } from "../service/getCartService.js";
+import type {Request, Response} from "express";
 
-export default async function addtocartController(req: Request, res: Response){
+export default async function getCartController(req: Request, res: Response){
     try {
-        const {productId, quantity} = req.body;
-        const userId = 1
-        const cart = await addtocartService(productId, quantity, userId)
+        const cart = await getCartService(1);
 
-        return res.status(201).json({
+        return res.status(200).json({
             status: "success",
-            message: "Cart item added successfully",
+            message: "Cart retrieved successfully",
             data: cart,
         })
     } catch (error: unknown) {
