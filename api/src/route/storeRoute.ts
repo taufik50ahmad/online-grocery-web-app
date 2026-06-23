@@ -7,30 +7,53 @@ import {
   registerMyStoreData,
   updateStoreData,
 } from "../controller/storeController.js";
-import { requireAuth, requireRole, requireVerified } from "../middleware/authMiddleware.js";
+import { 
+  requireAuth, 
+  requireRole, 
+  requireVerified } 
+  from "../middleware/authMiddleware.js";
 
 const router = Router();
 
 router.use(requireAuth);
-router.use(requireRole(["SUPER_ADMIN"]));
 router.use(requireVerified);
 
+//super and store can acce
+router.use(requireRole(["SUPER_ADMIN", "STORE_ADMIN"]));
 router.get("/", getStoreList);
 
-router.post("/", createStoreData);
-//customer create store
-router.post("/register-my-store", 
-  requireAuth,
-  requireVerified,
+//customer create stor
+router.post(
+  "/register-my-store", 
+  requireRole(["CUSTOMER"]),
   registerMyStoreData
 );
 
+//only super admin can create store
+router.post(
+  "/", 
+  requireRole(["SUPER_ADMIN"]),
+  createStoreData
+);
 
-router.put("/:id", updateStoreData);
+//super_admin and store admin can update
+router.put("/:id", 
+  requireRole(["SUPER_ADMIN", "STORE_ADMIN"]),
+  updateStoreData
+);
 
-router.delete("/:id", deleteStoreData);
+//super admin can delete store
+router.delete("/:id", 
+  requireRole(["SUPER_ADMIN",]),
+  deleteStoreData
+);
 
-router.post("/:id/assign-admin", assignAdminToStore);
+//super admin and store admin can assign store
+router.post("/:id/assign-admin", 
+  requireRole(["SUPER_ADMIN", "STORE_ADMIN"]),
+  assignAdminToStore
+);
+
 router.post("/register", registerMyStoreData);
 
 export default router;

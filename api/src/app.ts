@@ -7,6 +7,7 @@ import deleteDecreaseCartRoute from "./route/deleteCartRoute.js"
 import decreaseCartRoute from "./route/decreaseCartRoute.js"
 import authRoutes from "./route/authRoute.js";
 import storeRoutes from "./route/storeRoute.js";
+import productRoutes from "./route/productRoute.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,8 +26,7 @@ app.get("/", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/stores", storeRoutes);
-
-app.use(productRoute)
+app.use("/api/products", productRoutes);
 
 app.use(cartRoute)
 

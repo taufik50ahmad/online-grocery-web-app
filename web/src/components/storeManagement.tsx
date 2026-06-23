@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 import {
   assignStoreAdmin,
   createStore,
@@ -24,7 +25,12 @@ type Store = {
   } | null;
 };
 
-export function StoreManagement() {
+type StoreManagementProps = {
+  userRole: "USER" | "CUSTOMER" | "STORE_ADMIN" | "SUPER_ADMIN" | "ADMIN";
+};
+
+export function StoreManagement({ userRole }: StoreManagementProps) {
+  const isSuperAdmin = userRole === "SUPER_ADMIN";
   const [stores, setStores] = useState<Store[]>([]);
   const [editingStoreId, setEditingStoreId] = useState<number | null>(null);
 
@@ -241,39 +247,50 @@ export function StoreManagement() {
             </p>
 
             <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => handleEdit(store)}
-                className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
-              >
-                Edit
-              </button>
+  <Link
+    to={`/store/${store.id}`}
+    className="rounded bg-red-600 px-3 py-1 text-sm text-white"
+  >
+    Open Storefront
+  </Link>
 
-              <button
-                type="button"
-                onClick={() => handleDelete(store.id)}
-                className="rounded bg-red-600 px-3 py-1 text-sm text-white"
-              >
-                Delete
-              </button>
-            </div>
+  <button
+    type="button"
+    onClick={() => handleEdit(store)}
+    className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
+  >
+    Edit
+  </button>
 
-            <div className="mt-3 flex gap-2">
-              <input
-                type="number"
-                placeholder="Store admin user ID"
-                className="flex-1 rounded border px-3 py-2"
-                value={assignUserId}
-                onChange={(event) => setAssignUserId(event.target.value)}
-              />
+  {isSuperAdmin && (
+    <button
+      type="button"
+      onClick={() => handleDelete(store.id)}
+      className="rounded bg-red-600 px-3 py-1 text-sm text-white"
+    >
+      Delete
+    </button>
+              )}
 
-              <button
-                type="button"
-                onClick={() => handleAssignStoreAdmin(store.id)}
-                className="rounded bg-purple-600 px-3 py-2 text-sm text-white"
-              >
-                Assign Admin
-              </button>
+              {isSuperAdmin && (
+                <div className="mt-3 flex gap-2">
+                  <input
+                    type="number"
+                    placeholder="Store admin user ID"
+                    className="flex-1 rounded border px-3 py-2"
+                    value={assignUserId}
+                    onChange={(event) => setAssignUserId(event.target.value)}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => handleAssignStoreAdmin(store.id)}
+                    className="rounded bg-purple-600 px-3 py-2 text-sm text-white"
+                  >
+                    Assign Admin
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))}

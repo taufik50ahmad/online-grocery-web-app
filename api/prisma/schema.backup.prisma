@@ -7,132 +7,6 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id             Int         @id @default(autoincrement())
-  email          String      @unique
-  password       String
-  createdAt      DateTime    @default(now()) @map("created_at")
-  updatedAt      DateTime    @updatedAt @map("updated_at")
-  isVerified     Boolean     @default(false) @map("is_verified")
-  name           String?
-  phone          String?
-  role           UserRole    @default(CUSTOMER)
-  profilePicture String?     @map("profile_picture")
-  address        Address[]
-  cartItem       CartItem[]
-  order          Order[]
-  managedStores  Store[]     @relation("StoreAdminStores")
-  tokens         UserToken[]
-
-  @@map("users")
-}
-
-model UserToken {
-  id        Int           @id @default(autoincrement())
-  userId    Int           @map("user_id")
-  token     String        @unique
-  type      UserTokenType
-  expiredAt DateTime      @map("expired_at")
-  createdAt DateTime      @default(now()) @map("created_at")
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_tokens")
-}
-
-model Product {
-  id          Int           @id @default(autoincrement())
-  name        String
-  price       Int
-  stock       Int
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-  cartItem    CartItem[]
-  order_items order_items[]
-
-  @@map("products")
-}
-
-model CartItem {
-  id          Int      @id @default(autoincrement())
-  userId      Int      @map("user_id")
-  productId   Int      @map("product_id")
-  productName String   @map("product_name")
-  quantity    Int
-  createdAt   DateTime @default(now()) @map("created_at")
-  totalPrice  Int      @map("total_price")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("cart_items")
-}
-
-model Store {
-  id           Int      @id @default(autoincrement())
-  name         String
-  address      String?
-  city         String?
-  latitude     Decimal  @db.Decimal(10, 7)
-  longitude    Decimal  @db.Decimal(10, 7)
-  storeAdminId Int?     @map("store_admin_id")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  storeAdmin   User?    @relation("StoreAdminStores", fields: [storeAdminId], references: [id])
-
-  @@map("stores")
-}
-
-model Warehouse {
-  id        Int      @id @default(autoincrement())
-  name      String
-  latitude  Decimal  @db.Decimal(10, 7)
-  longitude Decimal  @db.Decimal(10, 7)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("warehouses")
-}
-
-model Address {
-  id             Int      @id @default(autoincrement())
-  address        String
-  city           String
-  phone          String
-  addressDefault Boolean  @default(false) @map("address_default")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-  userId         Int      @map("user_id")
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("addresses")
-}
-
-model Order {
-  id             Int           @id @default(autoincrement())
-  userId         Int           @map("user_id")
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
-  order_status   OrderStatus   @default(PENDING)
-  total_quantity Int
-  order_items    order_items[]
-  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("orders")
-}
-
-model order_items {
-  id           Int      @id @default(autoincrement())
-  order_id     Int
-  product_id   Int
-  product_name String
-  quantity     Int
-  total_price  Int
-  created_at   DateTime @default(now())
-  updated_at   DateTime
-  orders       Order    @relation(fields: [order_id], references: [id], onDelete: Cascade)
-  products     Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
-}
-
 enum UserRole {
   USER
   CUSTOMER
@@ -155,5 +29,126 @@ enum OrderStatus {
   CANCELLED
   SHIPPED
   COMPLETED
-  SUBMITTED
+}
+
+model User {
+  id             Int         @id @default(autoincrement())
+  email          String      @unique
+  password       String
+  name           String?
+  phone          String?
+  isVerified     Boolean     @default(false) @map("is_verified")
+  profilePicture String?     @map("profile_picture")
+  role           UserRole    @default(CUSTOMER)
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  cartItem       CartItem[]
+  address        Address[]
+  order          Order[]
+  tokens         UserToken[]
+  managedStores  Store[]     @relation("StoreAdminStores")
+
+  @@map("users")
+}
+
+model UserToken {
+  id        Int           @id @default(autoincrement())
+  userId    Int           @map("user_id")
+  token     String        @unique
+  type      UserTokenType
+  expiredAt DateTime      @map("expired_at")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_tokens")
+}
+
+model Product {
+  id        Int        @id @default(autoincrement())
+  storeId   Int        @map("store_id")
+  name      String
+  price     Int
+  quantity  Int
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  
+  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  cartItem  CartItem[]
+  order     Order[]
+
+  @@map("products")
+}
+
+model CartItem {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  productId   Int      @map("product_id")
+  productName String   @map("product_name")
+  quantity    Int
+  totalPrice  Int      @map("total_price")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("cart_items")
+}
+
+model Store {
+  id           Int      @id @default(autoincrement())
+  name         String
+  address      String?
+  city         String?
+  latitude     Decimal  @db.Decimal(10, 7)
+  longitude    Decimal  @db.Decimal(10, 7)
+  storeAdminId Int?     @map("store_admin_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  storeAdmin User? @relation("StoreAdminStores", fields: [storeAdminId], references: [id], onDelete: SetNull)
+  products   Product[]
+
+  @@map("stores")
+}
+
+model Warehouse {
+  id        Int      @id @default(autoincrement())
+  name      String
+  latitude  Decimal  @db.Decimal(10, 7)
+  longitude Decimal  @db.Decimal(10, 7)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("warehouses")
+}
+
+model Address {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  address        String
+  city           String
+  phone          String
+  addressDefault Boolean  @default(false) @map("address_default")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("addresses")
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  userId      Int         @map("user_id")
+  productId   Int         @map("product_id")
+  productName String      @map("product_name")
+  quantity    Int
+  totalPrice  Int         @map("total_price")
+  orderStatus OrderStatus @default(PENDING)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("orders")
 }

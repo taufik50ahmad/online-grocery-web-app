@@ -9,9 +9,10 @@ import {
   resendVerificationEmail,
   forgotPassword,
   resetPassword,
-} from "../services/authService";
-import { StoreManagement } from "./storeManagement";
+} from "../services/authService"; 
 import { registerMyStore } from "../services/storeService";
+import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 type User = {
   id: number;
@@ -24,8 +25,10 @@ type User = {
 };
 
 export function AuthSection() {
+  const navigate = useNavigate();
+  
   const [user, setUser] = useState<User | null>(null);
-
+  
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -79,6 +82,17 @@ export function AuthSection() {
 
       localStorage.setItem("token", result.token);
       alert("Login berhasil");
+
+      const profile = await getProfile();
+      setUser(profile.user);
+      if (
+        profile.user.role === "SUPER_ADMIN" ||
+        profile.user.role === "STORE_ADMIN"
+      ) {
+        navigate("/store-management");
+      } else {
+        navigate("/");
+      }
 
       await loadProfile();
     } 
@@ -255,6 +269,15 @@ async function handleResetPassword(event: FormEvent<HTMLFormElement>) {
           </button>
         </div>
 
+{(user.role === "STORE_ADMIN" || user.role === "SUPER_ADMIN") && (
+  <Link
+    to="/store-management"
+    className="mb-4 block w-full rounded bg-red-600 px-4 py-2 text-center text-white"
+  >
+    Go to Store Management
+  </Link>
+)}
+
 {user.role === "CUSTOMER" && !showCreateStore && (
   <button
     type="button"
@@ -360,7 +383,6 @@ async function handleResetPassword(event: FormEvent<HTMLFormElement>) {
             Update Profile
           </button>
         </form>
-        {user.role === "SUPER_ADMIN" && <StoreManagement />}
       </section>
     );
   }
