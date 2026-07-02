@@ -12,9 +12,15 @@ export async function createProduct(data: {
   name: string;
   price: number;
   stock: number;
+  imageUrl?: string;
 }) {
   return prisma.product.create({
-    data,
+    data: {
+      name: data.name,
+      price: data.price,
+      stock: data.stock,
+      imageUrl: data.imageUrl || null,
+    },
   });
 }
 
@@ -24,11 +30,17 @@ export async function updateProduct(
     name?: string;
     price?: number;
     stock?: number;
+    imageUrl?: string;
   }
 ) {
   return prisma.product.update({
     where: { id },
-    data,
+     data: {
+      name: data.name,
+      price: data.price,
+      stock: data.stock,
+      imageUrl: data.imageUrl || null,
+    },
   });
 }
 

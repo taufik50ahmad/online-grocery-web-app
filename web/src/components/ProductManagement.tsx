@@ -6,12 +6,42 @@ import {
   getProducts,
   updateProduct,
 } from "../services/productService";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+
+function getProductImage(productName: string) {
+  const name = productName.toLowerCase();
+
+  if (name.includes("liquid") || name.includes("soap")) {
+    return "/products/liquid-soap.jpg";
+  }
+
+  if (name.includes("ice")) {
+    return "/products/ice-cream.jpg";
+  }
+
+  if (name.includes("cangkir")) {
+    return "/products/cangkir-manis.jpg";
+  }
+
+  return "/products/default-product.jpg";
+}
 
 type Product = {
   id: number;
   name: string;
   price: number;
   stock: number;
+  imageUrl?: string | null;
 };
 
 type ProductManagementProps = {
@@ -25,6 +55,7 @@ export function ProductManagement({ canManageProduct }: ProductManagementProps) 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
 
   async function loadProducts() {
     try {
@@ -49,6 +80,7 @@ export function ProductManagement({ canManageProduct }: ProductManagementProps) 
     setName("");
     setPrice("");
     setStock("");
+    setImageUrl("");
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -59,6 +91,7 @@ export function ProductManagement({ canManageProduct }: ProductManagementProps) 
         name,
         price: Number(price),
         stock: Number(stock),
+        imageUrl,
       };
 
       if (editingProductId) {
@@ -86,6 +119,7 @@ export function ProductManagement({ canManageProduct }: ProductManagementProps) 
     setName(product.name);
     setPrice(String(product.price));
     setStock(String(product.stock));
+    setImageUrl(product.imageUrl || "");
   }
 
   async function handleDelete(id: number) {
@@ -114,51 +148,58 @@ export function ProductManagement({ canManageProduct }: ProductManagementProps) 
       <h2 className="mb-4 text-xl font-bold">Store Products</h2>
 
       {canManageProduct && (
-        <form onSubmit={handleSubmit} className="mb-6 grid gap-3">
-          <input
-            type="text"
-            placeholder="Product name"
-            className="rounded border px-3 py-2"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
+  <Card className="mb-6">
+    <CardHeader>
+      <CardTitle>
+        {editingProductId ? "Edit Product" : "Add Product"}
+      </CardTitle>
+    </CardHeader>
 
-          <input
-            type="number"
-            placeholder="Price"
-            className="rounded border px-3 py-2"
-            value={price}
-            onChange={(event) => setPrice(event.target.value)}
-          />
+    <CardContent>
+      <form onSubmit={handleSubmit} className="grid gap-3">
+        <Input
+          type="text"
+          placeholder="Product name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
 
-          <input
-            type="number"
-            placeholder="Stock"
-            className="rounded border px-3 py-2"
-            value={stock}
-            onChange={(event) => setStock(event.target.value)}
-          />
+        <Input
+          type="number"
+          placeholder="Price"
+          value={price}
+          onChange={(event) => setPrice(event.target.value)}
+        />
 
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              className="rounded bg-green-600 px-4 py-2 text-white"
-            >
-              {editingProductId ? "Update Product" : "Add Product"}
-            </button>
+        <Input
+          type="number"
+          placeholder="Stock"
+          value={stock}
+          onChange={(event) => setStock(event.target.value)}
+        />
 
-            {editingProductId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="rounded bg-slate-500 px-4 py-2 text-white"
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-        </form>
-      )}
+        <Input
+  type="text"
+  placeholder="Image URL"
+  value={imageUrl}
+  onChange={(event) => setImageUrl(event.target.value)}
+/>
+
+        <div className="flex gap-3">
+          <Button type="submit">
+            {editingProductId ? "Update Product" : "Add Product"}
+          </Button>
+
+          {editingProductId && (
+            <Button type="button" variant="secondary" onClick={resetForm}>
+              Cancel
+            </Button>
+          )}
+        </div>
+      </form>
+    </CardContent>
+  </Card>
+)}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {products.length === 0 && (
@@ -166,36 +207,51 @@ export function ProductManagement({ canManageProduct }: ProductManagementProps) 
         )}
 
         {products.map((product) => (
-          <div key={product.id} className="rounded-xl border p-4">
-            <h3 className="font-semibold">{product.name}</h3>
+  <Card key={product.id} className="overflow-hidden">
+    <div className="h-40 bg-slate-100">
+      <img
+        src={product.imageUrl || "/products/default-product.jpg"}
+        alt={product.name}
+        className="h-full w-full object-cover"
+      />
+    </div>
 
-            <p className="mt-1 text-sm text-slate-600">
-              Rp {product.price.toLocaleString("id-ID")}
-            </p>
+    <CardHeader>
+      <CardTitle className="text-base">{product.name}</CardTitle>
+    </CardHeader>
 
-            <p className="text-sm text-slate-500">Stock: {product.stock}</p>
+    <CardContent>
+      <p className="text-sm font-semibold text-red-600">
+        Rp {product.price.toLocaleString("id-ID")}
+      </p>
 
-            {canManageProduct && (
-              <div className="mt-3 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleEdit(product)}
-                  className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
-                >
-                  Edit
-                </button>
+      <p className="text-sm text-slate-500">
+        Stock: {product.stock}
+      </p>
+    </CardContent>
 
-                <button
-                  type="button"
-                  onClick={() => handleDelete(product.id)}
-                  className="rounded bg-red-600 px-3 py-1 text-sm text-white"
-                >
-                  Delete
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+    {canManageProduct && (
+      <CardFooter className="flex gap-2">
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => handleEdit(product)}
+        >
+          Edit
+        </Button>
+
+        <Button
+          type="button"
+          size="sm"
+          variant="destructive"
+          onClick={() => handleDelete(product.id)}
+        >
+          Delete
+        </Button>
+      </CardFooter>
+    )}
+  </Card>
+))}
       </div>
     </section>
   );
