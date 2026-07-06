@@ -15,7 +15,7 @@ export default async function addtoCartService(productId: number, quantity: numb
             throw new Error("Quantity must be greater than 0")
         }
 
-        if(products.quantity < quantity){
+        if(products.stock < quantity){
             throw new Error("Product is out of stock")
         }
 
@@ -43,7 +43,7 @@ export default async function addtoCartService(productId: number, quantity: numb
         const cart = await prisma.cartItem.create({
             data: {
                 productId: products.id,
-                userId: 1,
+                userId: userId,
                 productName: products.name,
                 quantity: quantity,
                 totalPrice: products.price * quantity,

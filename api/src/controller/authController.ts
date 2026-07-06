@@ -4,6 +4,7 @@ import {
   loginUser,
   registerUser,
   requestResetPassword,
+  resendVerificationEmail,
   resetPassword,
   updateProfile as updateUserProfileService,
   verifyEmailAndSetPassword,
@@ -43,6 +44,12 @@ const forgotPasswordSchema = z.object({
   .email("Invalid email address"),
 });
 
+const resendVerificationSchema = z.object({
+  email: z.string()
+  .min(1, "Email is needed")
+  .email("Invalid email address"),
+});
+
 const resetPasswordSchema = z.object({
   token: z.string().min(1, "Token is required"),
   password: z
@@ -76,8 +83,8 @@ const { email, name } = validation.data;
     const result = await registerUser(email, name);
 
     return res.status(201).json({
-      message: "Registrasi berhasil. Silakan verifikasi email.",
       ...result,
+      message: "Registrasi berhasil. Silakan verifikasi email.",
     });
   } catch (error) {
     return res.status(400).json({
@@ -160,6 +167,31 @@ export async function me(req: Request, res: Response) {
   }
 }
 
+export async function resendVerification(req: Request, res: Response) {
+  try {
+    const validation = resendVerificationSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        message: validation.error.issues[0]?.message || "Invalid request",
+      });
+    }
+
+    const { email } = validation.data;
+
+    const result = await resendVerificationEmail(email);
+
+    return res.json({
+      ...result,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message:
+        error instanceof Error ? error.message : "Gagal kirim ulang email verifikasi",
+    });
+  }
+}
+
 export async function forgotPassword(req: Request, res: Response) {
   try {
     const validation = forgotPasswordSchema.safeParse(req.body);
@@ -175,8 +207,8 @@ const { email } = validation.data;
     const result = await requestResetPassword(email);
 
     return res.json({
-      message: "Reset password link berhasil dibuat.",
       ...result,
+      message: "Reset password link berhasil dibuat.",
     });
   } catch (error) {
     return res.status(400).json({
