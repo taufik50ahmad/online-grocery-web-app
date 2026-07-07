@@ -15,7 +15,7 @@ type CartItem = {
   productName: string;
   quantity: number;
   totalPrice: number;
-}
+};
 
 export default function AddtoCartPage() {
   const dummyProducts: Product[] = [
@@ -48,25 +48,25 @@ export default function AddtoCartPage() {
         productId: product.id,
         quantity: 1,
       }),
-    })
+    });
 
-    const response = await fetch("http://localhost:9000/get/cart")
-    const result = await response.json()
+    const response = await fetch("http://localhost:9000/get/cart");
+    const result = await response.json();
 
     setCart(result.data)
     setIsLoading(false)
   }
 
   useEffect(() => {
-    async function fetchCart(){
-      const response = await fetch("http://localhost:9000/get/cart")
-      const result = await response.json()
+    async function fetchCart() {
+      const response = await fetch("http://localhost:9000/get/cart");
+      const result = await response.json();
 
-      setCart(result.data)
+      setCart(result.data);
     }
 
-    fetchCart()
-  }, [])
+    fetchCart();
+  }, []);
 
   async function deleteCart(productId: number){
     setIsLoading(true)
@@ -77,12 +77,12 @@ export default function AddtoCartPage() {
       },
       body: JSON.stringify({
         userId: 1,
-        productId: productId
+        productId: productId,
       }),
-    })
+    });
 
-    const response = await fetch("http://localhost:9000/get/cart")
-    const result = await response.json()
+    const response = await fetch("http://localhost:9000/get/cart");
+    const result = await response.json();
 
     setCart(result.data)
     setIsLoading(false)
@@ -100,10 +100,10 @@ export default function AddtoCartPage() {
         productId: productId,
         quantity: 1,
       }),
-    })
+    });
 
-    const response = await fetch("http://localhost:9000/get/cart")
-    const result = await response.json()
+    const response = await fetch("http://localhost:9000/get/cart");
+    const result = await response.json();
 
     setCart(result.data)
     setIsLoading(false)
@@ -118,12 +118,12 @@ export default function AddtoCartPage() {
       },
       body: JSON.stringify({
         userId: 1,
-        productId: id
+        productId: id,
       }),
-    })
+    });
 
-    const response = await fetch("http://localhost:9000/get/cart")
-    const result = await response.json()
+    const response = await fetch("http://localhost:9000/get/cart");
+    const result = await response.json();
 
     setCart(result.data)
     setIsLoading(false)

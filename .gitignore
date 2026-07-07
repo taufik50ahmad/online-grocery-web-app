@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.production
+.env*.local
+
+# Build
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cache
+.cache/
+.vite/
+
+# AI / Temp files
+*.pptx
+*.ppt
+*.tmp
+*.temp
+
+# TypeScript
+*.tsbuildinfo
+
+# Root level files yang tidak perlu
+package-lock.json
