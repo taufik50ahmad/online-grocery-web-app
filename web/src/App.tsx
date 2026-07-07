@@ -1,79 +1,55 @@
-import { useMemo, useState } from "react";
-import { Navbar } from "./components/Navbar";
-import { LocationStoreCard } from "./components/LocationStoreCard";
-import HeroCarousel from "./components/HeroCarousel";
-import { CategoryGrid } from "./components/CategoryGrid";
-import { PromoSection } from "./components/PromoSection";
-import { ProductList } from "./components/ProductList";
-import { Footer } from "./components/Footer";
-import { defaultStoreId, stores } from "./data/stores";
-import { products } from "./data/products";
-import { findNearestStore } from "./utils/distance";
+import { Routes, Route } from "react-router-dom";
+import HomePages from "@/pages/HomePages";
+import { LoginPage as CustomerLoginPage } from "@/pages/LoginPage";
+import AdminLayout from "@/components/admin/AdminLayout";
+import AdminGuard from "@/components/admin/AdminGuard";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import StoreAdminManagement from "@/pages/admin/StoreAdminManagement";
+import LoginPage from "@/pages/admin/LoginPage";
+import CategoryManagement from "@/pages/admin/CategoryManagement";
+import ProductManagement from "@/pages/admin/ProductManagement";
+import ProductCatalog from "@/pages/products/ProductCatalog";
+import ProductDetail from "@/pages/products/ProductDetail";
+import InventoryManagement from "@/pages/admin/InventoryManagement";
+import DiscountManagement from "@/pages/admin/DiscountManagement";
+import ReportAnalysis from "@/pages/admin/ReportAnalysis";
+import VerifyEmailPage from "@/pages/VerifyEmailPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import { Toaster } from "react-hot-toast";
+import CartPage from "@/pages/addtoCart";
+import Checkout from "@/pages/checkoutPage";
 
 export default function App() {
-  const defaultStore = stores.find((store) => store.id === defaultStoreId) || stores[0];
-
-  const [query, setQuery] = useState("");
-  const [selectedStore, setSelectedStore] = useState(defaultStore);
-  const [distanceKm, setDistanceKm] = useState<number | undefined>();
-  const [isOutOfRange, setIsOutOfRange] = useState(false);
-  const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "granted" | "denied" | "error">("idle");
-
-  const visibleProducts = useMemo(() => {
-    return products.filter((product) => {
-      const matchStore = product.storeId === selectedStore.id;
-      const keyword = query.toLowerCase();
-      const matchSearch = product.name.toLowerCase().includes(keyword) || product.category.toLowerCase().includes(keyword);
-
-      return matchStore && matchSearch;
-    });
-  }, [query, selectedStore.id]);
-
-  function detectLocation() {
-    if (!navigator.geolocation) {
-      setLocationStatus("error");
-      return;
-    }
-    setLocationStatus("loading");
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const userLocation = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        };
-
-        const nearest = findNearestStore(userLocation, stores);
-
-        setSelectedStore(nearest.store);
-        setDistanceKm(nearest.distanceKm);
-        setIsOutOfRange(nearest.distanceKm > nearest.store.maxServiceDistanceKm);
-        setLocationStatus("granted");
-      },
-      () => {
-        setSelectedStore(defaultStore);
-        setDistanceKm(undefined);
-        setIsOutOfRange(false);
-        setLocationStatus("denied");
-      }
-    );
-  }
-
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <Navbar selectedStore={selectedStore} query={query} setQuery={setQuery} />
-      <LocationStoreCard
-        selectedStore={selectedStore}
-        distanceKm={distanceKm}
-        isOutOfRange={isOutOfRange}
-        locationStatus={locationStatus}
-        onDetectLocation={detectLocation}
-      />
-      <HeroCarousel />
-      <CategoryGrid />
-      <PromoSection />
-      <ProductList products={visibleProducts} selectedStore={selectedStore} disabled={isOutOfRange} />
-      <Footer />
-    </main>
+    <>
+      <Toaster position="top-right" />
+      <Routes>
+        <Route path="/" element={<HomePages />} />
+        <Route path="/login" element={<CustomerLoginPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/confirm-reset-password" element={<ResetPasswordPage />} />
+        <Route path="/products" element={<ProductCatalog />} />
+        <Route path="/products/:id" element={<ProductDetail />} />
+        <Route path="/admin/login" element={<LoginPage />} />
+        <Route
+          path="/admin"
+          element={
+            <AdminGuard>
+              <AdminLayout />
+            </AdminGuard>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="store-admins" element={<StoreAdminManagement />} />
+          <Route path="categories" element={<CategoryManagement />} />
+          <Route path="products" element={<ProductManagement />} />
+          <Route path="inventory" element={<InventoryManagement />} />
+          <Route path="discounts" element={<DiscountManagement />} />
+          <Route path="reports" element={<ReportAnalysis />} />
+        </Route>
+      </Routes>
+    </>
   );
 }

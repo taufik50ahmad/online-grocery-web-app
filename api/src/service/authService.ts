@@ -2,6 +2,10 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { prisma } from "./prismaService.js";
+import {
+  sendVerificationEmail,
+  sendResetPasswordEmail,
+} from "./emailService.js";
 
 function createRandomToken() {
   return crypto.randomBytes(32).toString("hex");
@@ -53,6 +57,9 @@ export async function registerUser(email: string, name?: string) {
     },
   });
 
+  // Kirim email verifikasi ke user
+  await sendVerificationEmail(user.email, verificationToken);
+
   return {
     user: {
       id: user.id,
@@ -61,7 +68,48 @@ export async function registerUser(email: string, name?: string) {
       isVerified: user.isVerified,
       role: user.role,
     },
-    verificationLink: `http://localhost:5173/verify-email?token=${verificationToken}`,
+    message:
+      "Email verifikasi telah dikirim. Silakan cek email Anda untuk verifikasi.",
+  };
+}
+
+export async function resendVerificationEmail(email: string) {
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    throw new Error("User tidak ditemukan");
+  }
+
+  if (user.isVerified) {
+    throw new Error("Email sudah diverifikasi");
+  }
+
+  // Hapus token verifikasi lama
+  await prisma.userToken.deleteMany({
+    where: {
+      userId: user.id,
+      type: "EMAIL_VERIFICATION",
+    },
+  });
+
+  const verificationToken = createRandomToken();
+
+  await prisma.userToken.create({
+    data: {
+      userId: user.id,
+      token: verificationToken,
+      type: "EMAIL_VERIFICATION",
+      expiredAt: new Date(Date.now() + 60 * 60 * 1000),
+    },
+  });
+
+  // Kirim ulang email verifikasi
+  await sendVerificationEmail(user.email, verificationToken);
+
+  return {
+    message: "Email verifikasi telah dikirim ulang. Silakan cek email Anda.",
   };
 }
 
@@ -199,8 +247,12 @@ export async function requestResetPassword(email: string) {
     },
   });
 
+  // Kirim email reset password ke user
+  await sendResetPasswordEmail(user.email, resetToken);
+
   return {
-    resetLink: `http://localhost:5173/confirm-reset-password?token=${resetToken}`,
+    message:
+      "Email reset password telah dikirim. Silakan cek email Anda.",
   };
 }
 

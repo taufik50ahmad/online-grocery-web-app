@@ -5,6 +5,7 @@ import {
   login,
   me,
   register,
+  resendVerification,
   updateProfile,
   verifyEmail,
 } from "../controller/authController.js";
@@ -15,6 +16,7 @@ router.get("/me", me);
 
 router.post("/register", register);
 router.post("/verify-email", verifyEmail);
+router.post("/resend-verification", resendVerification);
 router.post("/login", login);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", confirmResetPassword);
