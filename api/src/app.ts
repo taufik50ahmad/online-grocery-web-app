@@ -35,6 +35,7 @@ app.use("/api/discounts", discountRoutes);
 app.use("/api/reports", reportRoutes);
 
 // Legacy cart routes
+
 app.use(productRoute);
 app.use(cartRoute);
 app.use(deleteDecreaseCartRoute);

@@ -16,6 +16,8 @@ import ReportAnalysis from "@/pages/admin/ReportAnalysis";
 import VerifyEmailPage from "@/pages/VerifyEmailPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import { Toaster } from "react-hot-toast";
+import CartPage from "@/pages/addtoCart";
+import Checkout from "@/pages/checkoutPage";
 
 export default function App() {
   return (
@@ -24,6 +26,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomePages />} />
         <Route path="/login" element={<CustomerLoginPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<Checkout />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/confirm-reset-password" element={<ResetPasswordPage />} />
         <Route path="/products" element={<ProductCatalog />} />

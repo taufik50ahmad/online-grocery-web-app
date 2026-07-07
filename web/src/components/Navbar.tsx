@@ -113,9 +113,10 @@ type NavbarProps = {
   query: string;
   setQuery: (value: string) => void;
   onAuthClick?: () => void;
+  onCartClick?: () => void;
 };
 
-export function Navbar({ selectedStore, query, setQuery, onAuthClick }: NavbarProps) {
+export function Navbar({ selectedStore, query, setQuery, onAuthClick, onCartClick }: NavbarProps) {
   return (
     <header className="sticky top-0 z-50 border-b border-red-100 bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 lg:px-8">
@@ -153,7 +154,9 @@ export function Navbar({ selectedStore, query, setQuery, onAuthClick }: NavbarPr
         <button className="rounded-2xl bg-slate-100 p-3 text-slate-700 md:hidden">
           <Search size={19} />
         </button>
-        <button className="rounded-2xl bg-red-600 p-3 text-white">
+        <button 
+        onClick={onCartClick}
+        className="rounded-2xl bg-red-600 p-3 text-white">
           <ShoppingCart size={19} />
         </button>
         <button

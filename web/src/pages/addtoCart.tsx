@@ -153,6 +153,13 @@ export default function AddtoCartPage() {
   return (
   <div className="min-h-screen bg-slate-100 p-8">
     <div className="mx-auto max-w-5xl">
+      <button
+        onClick={() => navigate("/")}
+        className="cursor-pointer rounded-lg bg-slate-700 px-4 py-2 text-white transition hover:bg-slate-800"
+      >
+        Back to Home
+      </button>
+      
       <h1 className="mb-6 text-4xl font-bold text-slate-800">
         Grocery Store
       </h1>
