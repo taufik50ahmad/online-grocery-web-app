@@ -9,6 +9,7 @@ import {
   updateProfile,
   verifyEmail,
   resendVerificationEmail,
+  googleLogin,
 } from "../controller/authController.js";
 import { requireAuth, requireVerified } from "../middleware/authMiddleware.js";
 
@@ -19,6 +20,7 @@ router.get("/me", me);
 router.post("/register", register);
 router.post("/verify-email", verifyEmail);
 router.post("/login", login);
+router.post("/google", googleLogin);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", confirmResetPassword);
 router.post("/resend-verification", resendVerificationEmail);

@@ -1,21 +1,46 @@
 import { prisma } from "./prismaService.js";
 
-export async function getStores() {
-  return prisma.store.findMany({
-    include: {
-      storeAdmin: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
+export async function getStores(userId: number, role: string) {
+    if (role === "SUPER_ADMIN") {
+    return prisma.store.findMany({
+      include: {
+        storeAdmin: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
         },
       },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+if (role === "STORE_ADMIN") {
+    return prisma.store.findMany({
+      where: {
+        storeAdminId: userId,
+      },
+      include: {
+        storeAdmin: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  return [];
 }
 
 export async function createStore(data: {
@@ -91,9 +116,17 @@ export async function registerMyStore(
     throw new Error("Super Admin tidak perlu register store");
   }
 
-  if (user.role === "STORE_ADMIN" || user.managedStores.length > 0) {
-    throw new Error("User sudah memiliki store");
-  }
+  // if (user.role === "STORE_ADMIN" || user.managedStores.length > 0) {
+  //   throw new Error("User sudah memiliki store");
+  // }
+
+if (user.managedStores.length > 0) {
+  throw new Error("User sudah memiliki store");
+}
+
+  if (user.role !== "CUSTOMER" && user.role !== "STORE_ADMIN") {
+  throw new Error("Role tidak bisa membuat store");
+}
 
   const store = await prisma.store.create({
     data: {

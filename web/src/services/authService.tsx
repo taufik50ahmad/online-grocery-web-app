@@ -97,3 +97,11 @@ export async function registerStoreAdmin() {
 
   return response.data;
 }
+
+export async function loginWithGoogle(idToken: string) {
+  const response = await axios.post(`${API_URL}/google`, {
+    idToken,
+  });
+
+  return response.data;
+}

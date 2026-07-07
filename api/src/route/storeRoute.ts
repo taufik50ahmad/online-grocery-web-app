@@ -19,24 +19,23 @@ router.use(requireAuth);
 router.use(requireVerified);
 
 //super and store can acce
-router.use(requireRole(["SUPER_ADMIN", "STORE_ADMIN"]));
 router.get("/", getStoreList);
 
 //customer create stor
 router.post(
   "/register-my-store", 
-  requireRole(["CUSTOMER"]),
+  requireRole(["CUSTOMER", "STORE_ADMIN"]),
   registerMyStoreData
 );
 
-//only super admin can create store
+// //only super admin can create store
 router.post(
   "/", 
   requireRole(["SUPER_ADMIN"]),
   createStoreData
 );
 
-//super_admin and store admin can update
+//super_admin and store admin can update store
 router.put("/:id", 
   requireRole(["SUPER_ADMIN", "STORE_ADMIN"]),
   updateStoreData
@@ -53,7 +52,5 @@ router.post("/:id/assign-admin",
   requireRole(["SUPER_ADMIN", "STORE_ADMIN"]),
   assignAdminToStore
 );
-
-router.post("/register", registerMyStoreData);
 
 export default router;

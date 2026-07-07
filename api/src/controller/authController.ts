@@ -10,6 +10,7 @@ import {
   verifyEmailAndSetPassword,
   verifyJwtToken,
   resendVerificationEmail as resendVerificationEmailService,
+  loginWithGoogle as loginWithGoogleService,
 } from "../service/authService.js";
 import { z } from "zod";
 
@@ -57,6 +58,12 @@ const resendVerificationSchema = z.object({
   email: z.string().min(1, "Email is required").email("Invalid email address"),
 });
 
+const googleLoginSchema = z.object({
+  idToken: z.string().min(1, "Google token is required"),
+});
+
+//----------------------------------------//
+
 function getTokenFromHeader(req: Request) {
   const authorization = req.headers.authorization;
 
@@ -65,6 +72,30 @@ function getTokenFromHeader(req: Request) {
   }
 
   return authorization.replace("Bearer ", "");
+}
+
+export async function googleLogin(req: Request, res: Response) {
+  try {
+    const validation = googleLoginSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        message: validation.error.issues[0]?.message || "Invalid request",
+      });
+    }
+
+    const result = await loginWithGoogleService(validation.data.idToken);
+
+    return res.json({
+      message: "Google login berhasil",
+      ...result,
+    });
+  } catch (error) {
+    return res.status(401).json({
+      message:
+        error instanceof Error ? error.message : "Gagal login dengan Google",
+    });
+  }
 }
 
 export async function register(req: Request, res: Response) {
@@ -82,7 +113,6 @@ const { email, name } = validation.data;
     const result = await registerUser(email, name);
 
     return res.status(201).json({
-      message: "Registrasi berhasil. Silakan verifikasi email.",
       ...result,
     });
   } catch (error) {
@@ -205,10 +235,7 @@ const { email } = validation.data;
 
     const result = await requestResetPassword(email);
 
-    return res.json({
-      message: "Reset password link berhasil dibuat.",
-      ...result,
-    });
+    return res.json(result);
   } catch (error) {
     return res.status(400).json({
       message:
@@ -300,5 +327,4 @@ export async function registerAsStoreAdmin(
           ? error.message
           : "Gagal register sebagai Store Admin",
     });
-  }
-}
+  }}

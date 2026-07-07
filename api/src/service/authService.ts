@@ -2,6 +2,11 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { prisma } from "./prismaService.js";
+import { OAuth2Client } from "google-auth-library";
+import {
+  sendVerificationEmail,
+  sendResetPasswordEmail,
+} from "./emailService.js";
 
 function createRandomToken() {
   return crypto.randomBytes(32).toString("hex");
@@ -20,6 +25,8 @@ function createJwtToken(user: { id: number; email: string; role: string }) {
     },
   );
 }
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export async function registerUser(email: string, name?: string) {
   const existingUser = await prisma.user.findUnique({
@@ -53,6 +60,9 @@ export async function registerUser(email: string, name?: string) {
     },
   });
 
+  await sendVerificationEmail(user.email, verificationToken);
+
+
   return {
     user: {
       id: user.id,
@@ -61,6 +71,7 @@ export async function registerUser(email: string, name?: string) {
       isVerified: user.isVerified,
       role: user.role,
     },
+    message: "Registrasi berhasil. silahkan cek email untuk verifikasi.",
     verificationLink: `http://localhost:5173/verify-email?token=${verificationToken}`,
   };
 }
@@ -170,6 +181,78 @@ export async function loginUser(email: string, password: string) {
     throw new Error("Email atau password salah");
   }
 
+const token = createJwtToken({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+  });
+
+  return {
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+      role: user.role,
+      isVerified: user.isVerified,
+    },
+  };
+}
+
+export async function loginWithGoogle(idToken: string) {
+  const ticket = await googleClient.verifyIdToken({
+    idToken,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+
+  const payload = ticket.getPayload();
+
+  if (!payload) {
+    throw new Error("Google token tidak valid");
+  }
+
+  if (!payload.email) {
+    throw new Error("Email Google tidak ditemukan");
+  }
+
+  if (!payload.email_verified) {
+    throw new Error("Email Google belum terverifikasi");
+  }
+
+  let user = await prisma.user.findUnique({
+    where: {
+      email: payload.email,
+    },
+  });
+
+  if (!user) {
+    const temporaryPassword = crypto.randomUUID();
+    const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
+
+    user = await prisma.user.create({
+      data: {
+        email: payload.email,
+        name: payload.name ?? null,
+        password: hashedPassword,
+        isVerified: true,
+        profilePicture: payload.picture ?? null,
+        role: "CUSTOMER",
+      },
+    });
+  } else {
+    user = await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        isVerified: true,
+        name: user.name || payload.name || null,
+        profilePicture: user.profilePicture || payload.picture || null,
+      },
+    });
+  }
+
   const token = createJwtToken({
     id: user.id,
     email: user.email,
@@ -183,6 +266,7 @@ export async function loginUser(email: string, password: string) {
       email: user.email,
       name: user.name,
       phone: user.phone,
+      profilePicture: user.profilePicture,
       role: user.role,
       isVerified: user.isVerified,
     },
@@ -212,6 +296,7 @@ export async function getProfile(userId: number) {
   return user;
 }
 
+
 export async function requestResetPassword(email: string) {
   const user = await prisma.user.findUnique({
     where: { email },
@@ -239,7 +324,10 @@ export async function requestResetPassword(email: string) {
     },
   });
 
+  await sendResetPasswordEmail(user.email, resetToken);
+
   return {
+    message: "Reset password email berhasil dikirim.",
     resetLink: `http://localhost:5173/confirm-reset-password?token=${resetToken}`,
   };
 }
@@ -329,7 +417,7 @@ export async function resendVerificationEmail(email: string) {
     },
   });
 
-  const token = crypto.randomUUID();
+const token = createRandomToken();
 
   await prisma.userToken.create({
     data: {
@@ -339,6 +427,8 @@ export async function resendVerificationEmail(email: string) {
       expiredAt: new Date(Date.now() + 60 * 60 * 1000),
     },
   });
+
+  await sendVerificationEmail(user.email, token);
 
   return {
     message: "Verification email berhasil dikirim ulang.",
@@ -353,4 +443,3 @@ export function verifyJwtToken(token: string) {
     role: string;
   };
 }
-

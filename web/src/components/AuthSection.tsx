@@ -3,6 +3,7 @@ import axios from "axios";
 import {
   getProfile,
   loginUser,
+  loginWithGoogle,
   registerUser,
   updateProfile,
   verifyEmail,
@@ -13,6 +14,7 @@ import {
 import { registerMyStore } from "../services/storeService";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 
 type User = {
   id: number;
@@ -66,6 +68,38 @@ export function AuthSection() {
       loadProfile();
     }
   }, []);
+
+async function handleGoogleLoginSuccess(
+  credentialResponse: CredentialResponse
+) {
+  try {
+    if (!credentialResponse.credential) {
+      alert("Google credential tidak ditemukan");
+      return;
+    }
+
+    const result = await loginWithGoogle(credentialResponse.credential);
+
+    localStorage.setItem("token", result.token);
+    alert("Login Google berhasil");
+
+    if (
+      result.user.role === "SUPER_ADMIN" ||
+      result.user.role === "STORE_ADMIN"
+    ) {
+      navigate("/store-management");
+    } else {
+      navigate("/");
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      alert(error.response?.data?.message || "Gagal login dengan Google");
+      return;
+    }
+
+    alert("Gagal login dengan Google");
+  }
+}
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -277,6 +311,13 @@ async function handleResetPassword(event: FormEvent<HTMLFormElement>) {
     Go to Store Management
   </Link>
 )}
+
+<Link
+  to="/"
+  className="mb-4 block w-full rounded bg-slate-700 px-4 py-2 text-center text-white"
+>
+  Back to Home
+</Link>
 
 {user.role === "CUSTOMER" && !showCreateStore && (
   <button
@@ -520,9 +561,15 @@ if (mode === "reset") {
 
   return (
     <section className="mx-auto my-6 max-w-md rounded-xl bg-white p-6 shadow">
-      <h2 className="mb-4 text-xl font-semibold">
-        {mode === "register" ? "Register" : "Login"}
-      </h2>
+      <h2 className="mb-2 text-xl font-semibold">
+  {mode === "register" ? "Register with Email" : "Login with Email"}
+</h2>
+
+<p className="mb-4 text-sm text-slate-500">
+  {mode === "register"
+    ? "Enter your email. Verification will be sent to your email before setting password."
+    : "Login using your registered email and password."}
+</p>
 
       <form onSubmit={handleSubmit}>
         {mode === "register" && (
@@ -559,6 +606,14 @@ if (mode === "reset") {
         >
           {mode === "register" ? "Register" : "Login"}
         </button>
+        {mode === "login" && (
+  <div className="mt-4">
+    <GoogleLogin
+      onSuccess={handleGoogleLoginSuccess}
+      onError={() => alert("Google login gagal")}
+    />
+  </div>
+)}
       </form>
 
       <button

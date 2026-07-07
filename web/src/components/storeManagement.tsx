@@ -6,6 +6,7 @@ import {
   createStore,
   deleteStore,
   getStores,
+  registerMyStore,
   updateStore,
 } from "../services/storeService";
 
@@ -85,9 +86,14 @@ export function StoreManagement({ userRole }: StoreManagementProps) {
         const result = await updateStore(editingStoreId, payload);
         alert(result.message || "Store berhasil diperbarui");
       } else {
-        const result = await createStore(payload);
-        alert(result.message || "Store berhasil dibuat");
+        if (isSuperAdmin) {
+        await createStore(payload);
+      } else {
+        await registerMyStore(payload);
       }
+    }
+
+    alert("Store berhasil disimpan");
 
       resetForm();
       await loadStores();
