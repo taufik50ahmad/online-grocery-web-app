@@ -6,6 +6,8 @@ import cartRoute from "./route/getCartRoute.js"
 import deleteDecreaseCartRoute from "./route/deleteCartRoute.js"
 import decreaseCartRoute from "./route/decreaseCartRoute.js"
 import authRoutes from "./route/authRoute.js";
+import checkoutRoute from "./route/checkoutRoute.js";
+import getCheckoutRoute from "./route/getCheckoutRoute.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -31,6 +33,10 @@ app.use(cartRoute)
 app.use(deleteDecreaseCartRoute)
 
 app.use(decreaseCartRoute)
+
+app.use(checkoutRoute)
+
+app.use(getCheckoutRoute)
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
