@@ -92,8 +92,16 @@ export async function registerStoreAdmin() {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    },
+    }
   );
+
+  return response.data;
+}
+
+export async function loginWithGoogle(idToken: string) {
+  const response = await axios.post(`${API_URL}/google`, {
+    idToken,
+  });
 
   return response.data;
 }

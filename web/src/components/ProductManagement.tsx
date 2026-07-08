@@ -149,58 +149,58 @@ export function ProductManagement({
       <h2 className="mb-4 text-xl font-bold">Store Products</h2>
 
       {canManageProduct && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>
-              {editingProductId ? "Edit Product" : "Add Product"}
-            </CardTitle>
-          </CardHeader>
+  <Card className="mb-6">
+    <CardHeader>
+      <CardTitle>
+        {editingProductId ? "Edit Product" : "Add Product"}
+      </CardTitle>
+    </CardHeader>
 
-          <CardContent>
-            <form onSubmit={handleSubmit} className="grid gap-3">
-              <Input
-                type="text"
-                placeholder="Product name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
+    <CardContent>
+      <form onSubmit={handleSubmit} className="grid gap-3">
+        <Input
+          type="text"
+          placeholder="Product name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
 
-              <Input
-                type="number"
-                placeholder="Price"
-                value={price}
-                onChange={(event) => setPrice(event.target.value)}
-              />
+        <Input
+          type="number"
+          placeholder="Price"
+          value={price}
+          onChange={(event) => setPrice(event.target.value)}
+        />
 
-              <Input
-                type="number"
-                placeholder="Stock"
-                value={stock}
-                onChange={(event) => setStock(event.target.value)}
-              />
+        <Input
+          type="number"
+          placeholder="Stock"
+          value={stock}
+          onChange={(event) => setStock(event.target.value)}
+        />
 
-              <Input
-                type="text"
-                placeholder="Image URL"
-                value={imageUrl}
-                onChange={(event) => setImageUrl(event.target.value)}
-              />
+        <Input
+  type="text"
+  placeholder="Image URL"
+  value={imageUrl}
+  onChange={(event) => setImageUrl(event.target.value)}
+/>
 
-              <div className="flex gap-3">
-                <Button type="submit">
-                  {editingProductId ? "Update Product" : "Add Product"}
-                </Button>
+        <div className="flex gap-3">
+          <Button type="submit">
+            {editingProductId ? "Update Product" : "Add Product"}
+          </Button>
 
-                {editingProductId && (
-                  <Button type="button" variant="secondary" onClick={resetForm}>
-                    Cancel
-                  </Button>
-                )}
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+          {editingProductId && (
+            <Button type="button" variant="secondary" onClick={resetForm}>
+              Cancel
+            </Button>
+          )}
+        </div>
+      </form>
+    </CardContent>
+  </Card>
+)}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {products.length === 0 && (
@@ -208,49 +208,51 @@ export function ProductManagement({
         )}
 
         {products.map((product) => (
-          <Card key={product.id} className="overflow-hidden">
-            <div className="h-40 bg-slate-100">
-              <img
-                src={product.imageUrl || "/products/default-product.jpg"}
-                alt={product.name}
-                className="h-full w-full object-cover"
-              />
-            </div>
+  <Card key={product.id} className="overflow-hidden">
+    <div className="h-40 bg-slate-100">
+      <img
+        src={product.imageUrl || "/products/default-product.jpg"}
+        alt={product.name}
+        className="h-full w-full object-cover"
+      />
+    </div>
 
-            <CardHeader>
-              <CardTitle className="text-base">{product.name}</CardTitle>
-            </CardHeader>
+    <CardHeader>
+      <CardTitle className="text-base">{product.name}</CardTitle>
+    </CardHeader>
 
-            <CardContent>
-              <p className="text-sm font-semibold text-red-600">
-                Rp {product.price.toLocaleString("id-ID")}
-              </p>
+    <CardContent>
+      <p className="text-sm font-semibold text-red-600">
+        Rp {product.price.toLocaleString("id-ID")}
+      </p>
 
-              <p className="text-sm text-slate-500">Stock: {product.stock}</p>
-            </CardContent>
+      <p className="text-sm text-slate-500">
+        Stock: {product.stock}
+      </p>
+    </CardContent>
 
-            {canManageProduct && (
-              <CardFooter className="flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => handleEdit(product)}
-                >
-                  Edit
-                </Button>
+    {canManageProduct && (
+      <CardFooter className="flex gap-2">
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => handleEdit(product)}
+        >
+          Edit
+        </Button>
 
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => handleDelete(product.id)}
-                >
-                  Delete
-                </Button>
-              </CardFooter>
-            )}
-          </Card>
-        ))}
+        <Button
+          type="button"
+          size="sm"
+          variant="destructive"
+          onClick={() => handleDelete(product.id)}
+        >
+          Delete
+        </Button>
+      </CardFooter>
+    )}
+  </Card>
+))}
       </div>
     </section>
   );

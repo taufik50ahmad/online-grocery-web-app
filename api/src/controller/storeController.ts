@@ -5,6 +5,7 @@ import {
   createStore,
   deleteStore,
   getStores,
+  getPublicStores as getPublicStoresService,
   registerMyStore,
   updateStore,
 } from "../service/storeService.js";
@@ -23,9 +24,17 @@ const assignStoreAdminSchema = z.object({
   userId: z.number(),
 });
 
-export async function getStoreList(req: Request, res: Response) {
+export async function getStoreList(req: AuthenticatedRequest, res: Response) {
   try {
-    const stores = await getStores();
+    if (!req.user) {return res.status(401).json({
+        message: "Silakan login terlebih dahulu",
+      });
+    }
+    console.log("GET STORES REQUEST QUERY:", req.query);
+
+    const stores = await getStores(req.user?.id, req.user?.role);
+
+console.log("GET STORES RESULT:", stores);
 
     return res.json({
       stores,
@@ -37,7 +46,22 @@ export async function getStoreList(req: Request, res: Response) {
   }
 }
 
-export async function createStoreData(req: Request, res: Response) {
+export async function getPublicStoreList(req: Request, res: Response) {
+  try {
+    const stores = await getPublicStoresService();
+
+    return res.json({
+      stores,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Gagal mengambil public store",
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+}
+
+export async function createStoreData(req: AuthenticatedRequest, res: Response) {
   try {
     const validation = storeSchema.safeParse(req.body);
 
@@ -60,7 +84,7 @@ export async function createStoreData(req: Request, res: Response) {
   }
 }
 
-export async function updateStoreData(req: Request, res: Response) {
+export async function updateStoreData(req: AuthenticatedRequest, res: Response) {
   try {
     const storeId = Number(req.params.id);
 
@@ -114,7 +138,7 @@ export async function registerMyStoreData(
   }
 }
 
-export async function deleteStoreData(req: Request, res: Response) {
+export async function deleteStoreData(req: AuthenticatedRequest, res: Response) {
   try {
     const storeId = Number(req.params.id);
 
@@ -130,7 +154,7 @@ export async function deleteStoreData(req: Request, res: Response) {
   }
 }
 
-export async function assignAdminToStore(req: Request, res: Response) {
+export async function assignAdminToStore(req: AuthenticatedRequest, res: Response) {
   try {
     const storeId = Number(req.params.id);
 
@@ -175,6 +199,7 @@ type UpdateStoreInput = {
 type AuthenticatedRequest = Request & {
   user?: {
     id: number;
+    email?: string;
     role: string;
     isVerified: boolean;
   };

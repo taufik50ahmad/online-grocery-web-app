@@ -168,6 +168,14 @@ export function Navbar({ selectedStore, query, setQuery, onAuthClick, onCartClic
         <button className="rounded-2xl border border-slate-200 p-3 md:hidden">
           <Menu size={19} />
         </button>
+        
+        <button
+  type="button"
+  onClick={onAuthClick}
+  className="rounded-2xl border border-slate-200 p-3 md:hidden"
+>
+  <Menu size={19} />
+</button>
       </div>
     </header>
   );

@@ -45,13 +45,14 @@ model User {
   role           UserRole       @default(CUSTOMER)
   profilePicture String?        @map("profile_picture")
   storeId        Int?           @map("store_id")
+  addresses      Address[]
   cartItem       CartItem[]
   order          Order[]
+  managedStores  Store[]        @relation("StoreAdminStores")
   tokens         UserToken[]
   store          Store?         @relation(fields: [storeId], references: [id], onDelete: SetNull)
   stockJournals  StockJournal[]
   discounts      Discount[]
-  addresses      Address[]
 
   @@map("users")
 }
@@ -71,7 +72,7 @@ model UserToken {
 model Category {
   id        Int       @id @default(autoincrement())
   name      String    @unique
-  slug      String    @unique
+  slug      String?   @unique
   imageUrl  String?   @map("image_url")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -83,7 +84,7 @@ model Category {
 model Product {
   id          Int            @id @default(autoincrement())
   name        String
-  slug        String         @unique
+  slug        String?        @unique
   description String?
   price       Int
   stock       Int            @default(0)
@@ -186,19 +187,21 @@ model OrderItem {
 }
 
 model Store {
-  id        Int            @id @default(autoincrement())
-  name      String
-  address   String?
-  city      String?
-  latitude  Decimal        @db.Decimal(10, 7)
-  longitude Decimal        @db.Decimal(10, 7)
-  isActive  Boolean        @default(true) @map("is_active")
-  createdAt DateTime       @default(now()) @map("created_at")
-  updatedAt DateTime       @updatedAt @map("updated_at")
-  users     User[]
-  stocks    Stock[]
-  journals  StockJournal[]
-  discounts Discount[]
+  id           Int            @id @default(autoincrement())
+  name         String
+  address      String?
+  city         String?
+  latitude     Decimal        @db.Decimal(10, 7)
+  longitude    Decimal        @db.Decimal(10, 7)
+  storeAdminId Int?           @map("store_admin_id")
+  isActive     Boolean        @default(true) @map("is_active")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  storeAdmin   User?          @relation("StoreAdminStores", fields: [storeAdminId], references: [id])
+  users        User[]
+  stocks       Stock[]
+  journals     StockJournal[]
+  discounts    Discount[]
 
   @@map("stores")
 }

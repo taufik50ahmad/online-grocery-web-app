@@ -20,10 +20,7 @@ export function LoginForm() {
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="mx-auto my-6 max-w-md rounded-xl bg-white p-6 shadow"
-    >
+    <form onSubmit={handleSubmit} className="mx-auto my-6 max-w-md rounded-xl bg-white p-6 shadow">
       <h2 className="mb-4 text-xl font-semibold">Login</h2>
 
       <input
@@ -42,10 +39,7 @@ export function LoginForm() {
         onChange={(event) => setPassword(event.target.value)}
       />
 
-      <button
-        type="submit"
-        className="w-full rounded bg-green-600 px-4 py-2 text-white"
-      >
+      <button type="submit" className="w-full rounded bg-green-600 px-4 py-2 text-white">
         Login
       </button>
     </form>

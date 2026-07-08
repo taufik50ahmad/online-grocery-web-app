@@ -3,12 +3,14 @@ import {
   getProfile,
   loginUser,
   registerUser,
+  registerStoreAdmin,
   requestResetPassword,
-  resendVerificationEmail,
   resetPassword,
   updateProfile as updateUserProfileService,
   verifyEmailAndSetPassword,
   verifyJwtToken,
+  resendVerificationEmail as resendVerificationEmailService,
+  loginWithGoogle as loginWithGoogleService,
 } from "../service/authService.js";
 import { z } from "zod";
 
@@ -44,12 +46,6 @@ const forgotPasswordSchema = z.object({
   .email("Invalid email address"),
 });
 
-const resendVerificationSchema = z.object({
-  email: z.string()
-  .min(1, "Email is needed")
-  .email("Invalid email address"),
-});
-
 const resetPasswordSchema = z.object({
   token: z.string().min(1, "Token is required"),
   password: z
@@ -57,6 +53,16 @@ const resetPasswordSchema = z.object({
     .min(1, "Password is required")
     .min(8, "Password must be at least 8 characters long"),
 });
+
+const resendVerificationSchema = z.object({
+  email: z.string().min(1, "Email is required").email("Invalid email address"),
+});
+
+const googleLoginSchema = z.object({
+  idToken: z.string().min(1, "Google token is required"),
+});
+
+//----------------------------------------//
 
 function getTokenFromHeader(req: Request) {
   const authorization = req.headers.authorization;
@@ -66,6 +72,30 @@ function getTokenFromHeader(req: Request) {
   }
 
   return authorization.replace("Bearer ", "");
+}
+
+export async function googleLogin(req: Request, res: Response) {
+  try {
+    const validation = googleLoginSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        message: validation.error.issues[0]?.message || "Invalid request",
+      });
+    }
+
+    const result = await loginWithGoogleService(validation.data.idToken);
+
+    return res.json({
+      message: "Google login berhasil",
+      ...result,
+    });
+  } catch (error) {
+    return res.status(401).json({
+      message:
+        error instanceof Error ? error.message : "Gagal login dengan Google",
+    });
+  }
 }
 
 export async function register(req: Request, res: Response) {
@@ -167,7 +197,7 @@ export async function me(req: Request, res: Response) {
   }
 }
 
-export async function resendVerification(req: Request, res: Response) {
+export async function resendVerificationEmail(req: Request, res: Response) {
   try {
     const validation = resendVerificationSchema.safeParse(req.body);
 
@@ -179,15 +209,15 @@ export async function resendVerification(req: Request, res: Response) {
 
     const { email } = validation.data;
 
-    const result = await resendVerificationEmail(email);
+    const result = await resendVerificationEmailService(email);
 
-    return res.json({
-      ...result,
-    });
+    return res.json(result);
   } catch (error) {
     return res.status(400).json({
       message:
-        error instanceof Error ? error.message : "Gagal kirim ulang email verifikasi",
+        error instanceof Error
+          ? error.message
+          : "Gagal mengirim ulang verification email",
     });
   }
 }
@@ -271,3 +301,34 @@ export async function updateProfile(req: Request, res: Response) {
     });
   }
 }
+
+type AuthenticatedRequest = Request & {
+  user?: {
+    id: number;
+    role: string;
+    isVerified: boolean;
+  };
+};
+
+export async function registerAsStoreAdmin(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        message: "Silakan login terlebih dahulu",
+      });
+    }
+
+    const result = await registerStoreAdmin(req.user.id);
+
+    return res.json(result);
+  } catch (error) {
+    return res.status(400).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Gagal register sebagai Store Admin",
+    });
+  }}

@@ -66,8 +66,12 @@ export function StoreManagementPage() {
     <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900">
       <div className="mx-auto mb-4 max-w-4xl flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-red-600">Store Management</h1>
-          <p className="text-sm text-slate-500">Logged in as {user.role}</p>
+          <h1 className="text-2xl font-black text-red-600">
+            Store Management
+          </h1>
+          <p className="text-sm text-slate-500">
+            Logged in as {user.role}
+          </p>
         </div>
 
         <Link

@@ -32,7 +32,7 @@ export function StoreFrontPage() {
     try {
       const storesResult = await getStores();
       const foundStore = storesResult.stores.find(
-        (item: Store) => item.id === Number(storeId),
+        (item: Store) => item.id === Number(storeId)
       );
 
       setStore(foundStore || null);
@@ -92,7 +92,9 @@ export function StoreFrontPage() {
         <div className="mb-6 rounded-2xl bg-white p-6 shadow">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-black text-red-600">{store.name}</h1>
+              <h1 className="text-3xl font-black text-red-600">
+                {store.name}
+              </h1>
 
               <p className="mt-2 text-sm text-slate-600">
                 {store.address || "-"} | {store.city || "-"}

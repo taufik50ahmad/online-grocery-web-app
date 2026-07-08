@@ -6,6 +6,8 @@ import { CategoryGrid } from "../components/CategoryGrid";
 import { PromoSection } from "../components/PromoSection";
 import { ProductList } from "../components/ProductList";
 import { Footer } from "../components/Footer";
+// import { defaultStoreId, stores } from "../data/stores";
+// import { products } from "../data/products";
 import { getPublicStores } from "../services/storeService";
 import { getProducts } from "../services/productService";
 import { findNearestStore } from "../utils/distance";
@@ -31,13 +33,16 @@ type Product = {
   storeId?: number;
 };
 
-export default function HomePages() {
-  const navigate = useNavigate();
 
-  const [stores, setStores] = useState<Store[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+export default function HomePages() {
+  const defaultStore =
+    stores.find((store) => store.id === defaultStoreId) || stores[0];
+
+  const navigate = useNavigate();
+   const [stores, setStores] = useState<Store[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
-  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+  const [selectedStore, setSelectedStore] = useState(defaultStore);
   const [distanceKm, setDistanceKm] = useState<number | undefined>();
   const [isOutOfRange, setIsOutOfRange] = useState(false);
   const [locationStatus, setLocationStatus] = useState<
@@ -45,22 +50,18 @@ export default function HomePages() {
   >("idle");
 
   async function loadHomepageData() {
-    try {
-      const storeResult = await getPublicStores();
-      const productResult = await getProducts();
+    const storeResult = await getPublicStores();
+    const productResult = await getProducts();
 
-      const storeList = storeResult.stores || [];
-      const productList =
-        productResult.products || productResult.data || productResult.items || [];
+    const storeList = storeResult.stores || [];
+    const productList =
+      productResult.products || productResult.data || productResult.items || [];
 
-      setStores(storeList);
-      setProducts(productList);
+    setStores(storeList);
+    setProducts(productList);
 
-      if (storeList.length > 0) {
-        setSelectedStore(storeList[0]);
-      }
-    } catch (error) {
-      console.error("LOAD HOMEPAGE ERROR:", error);
+    if (storeList.length > 0) {
+      setSelectedStore(storeList[0]);
     }
   }
 
@@ -70,33 +71,21 @@ export default function HomePages() {
 
   const visibleProducts = useMemo(() => {
     return products.filter((product) => {
+      const matchStore = product.storeId === selectedStore.id;
       const keyword = query.toLowerCase();
-
       const matchSearch =
         product.name.toLowerCase().includes(keyword) ||
-        String(product.category || "").toLowerCase().includes(keyword);
-
-      // If product has storeId, filter by selected store.
-      // If product does not have storeId yet, show it globally.
-      const matchStore = product.storeId
-        ? product.storeId === selectedStore?.id
-        : true;
+        product.category.toLowerCase().includes(keyword);
 
       return matchStore && matchSearch;
     });
-  }, [products, query, selectedStore?.id]);
+  }, [query, selectedStore.id]);
 
   function detectLocation() {
     if (!navigator.geolocation) {
       setLocationStatus("error");
       return;
     }
-
-    if (stores.length === 0) {
-      setLocationStatus("error");
-      return;
-    }
-
     setLocationStatus("loading");
 
     navigator.geolocation.getCurrentPosition(
@@ -106,18 +95,17 @@ export default function HomePages() {
           longitude: position.coords.longitude,
         };
 
-        const nearest = findNearestStore(userLocation, stores as any);
+        const nearest = findNearestStore(userLocation, stores);
 
         setSelectedStore(nearest.store);
         setDistanceKm(nearest.distanceKm);
-
-        const maxDistance = nearest.store.maxServiceDistanceKm || 50;
-
-        setIsOutOfRange(nearest.distanceKm > maxDistance);
+        setIsOutOfRange(
+          nearest.distanceKm > nearest.store.maxServiceDistanceKm,
+        );
         setLocationStatus("granted");
       },
       () => {
-        setSelectedStore(stores[0]);
+        setSelectedStore(defaultStore);
         setDistanceKm(undefined);
         setIsOutOfRange(false);
         setLocationStatus("denied");
@@ -125,42 +113,30 @@ export default function HomePages() {
     );
   }
 
-  if (!selectedStore) {
-    return (
-      <main className="min-h-screen bg-slate-50 p-10 text-slate-900">
-        Loading homepage...
-      </main>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <Navbar
-        selectedStore={selectedStore as any}
+        selectedStore={selectedStore}
         query={query}
         setQuery={setQuery}
         onAuthClick={() => navigate("/login")}
         onCartClick={() => navigate("/cart")}
       />
-
       <LocationStoreCard
-        selectedStore={selectedStore as any}
+        selectedStore={selectedStore}
         distanceKm={distanceKm}
         isOutOfRange={isOutOfRange}
         locationStatus={locationStatus}
         onDetectLocation={detectLocation}
       />
-
       <HeroCarousel />
       <CategoryGrid />
       <PromoSection />
-
       <ProductList
-        products={visibleProducts as any}
-        selectedStore={selectedStore as any}
+        products={visibleProducts}
+        selectedStore={selectedStore}
         disabled={isOutOfRange}
       />
-
       <Footer />
     </main>
   );

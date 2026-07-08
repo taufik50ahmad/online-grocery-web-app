@@ -3,16 +3,19 @@ import axios from "axios";
 import {
   getProfile,
   loginUser,
+  loginWithGoogle,
   registerUser,
   updateProfile,
   verifyEmail,
   resendVerificationEmail,
   forgotPassword,
   resetPassword,
-} from "../services/authService";
+} from "../services/authService"; 
 import { registerMyStore } from "../services/storeService";
+import { getStores } from "../services/storeService";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 
 type User = {
   id: number;
@@ -26,19 +29,18 @@ type User = {
 
 export function AuthSection() {
   const navigate = useNavigate();
-
+  
   const [user, setUser] = useState<User | null>(null);
-
+  
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [myStoreId, setMyStoreId] = useState<number | null>(null);
   const [phone, setPhone] = useState("");
   const [profilePicture, setProfilePicture] = useState("");
 
-  const [mode, setMode] = useState<
-    "login" | "register" | "verify" | "forgot" | "reset"
-  >("login");
+  const [mode, setMode] = useState<"login" | "register" | "verify" | "forgot" | "reset">("login");
   const [token, setToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
 
@@ -56,6 +58,10 @@ export function AuthSection() {
       setName(result.user?.name || "");
       setPhone(result.user?.phone || "");
       setProfilePicture(result.user?.profilePicture || "");
+
+      if (result.user.role === "STORE_ADMIN") {
+  await loadMyStore();
+}
     } catch {
       setUser(null);
     }
@@ -69,18 +75,48 @@ export function AuthSection() {
     }
   }, []);
 
+async function handleGoogleLoginSuccess(
+  credentialResponse: CredentialResponse
+) {
+  try {
+    if (!credentialResponse.credential) {
+      alert("Google credential tidak ditemukan");
+      return;
+    }
+
+    const result = await loginWithGoogle(credentialResponse.credential);
+
+    localStorage.setItem("token", result.token);
+    alert("Login Google berhasil");
+
+    if (
+      result.user.role === "SUPER_ADMIN" ||
+      result.user.role === "STORE_ADMIN"
+    ) {
+      navigate("/store-management");
+    } else {
+      navigate("/");
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      alert(error.response?.data?.message || "Gagal login dengan Google");
+      return;
+    }
+
+    alert("Gagal login dengan Google");
+  }
+}
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     try {
       if (mode === "register") {
-        const result = await registerUser(name, email);
-        alert(
-          result.message || "Register berhasil. Silakan verifikasi e mail.",
-        );
-        setMode("verify");
-        return;
-      }
+    const result = await registerUser(name, email);
+    alert(result.message || "Register berhasil. Silakan verifikasi e mail.");
+      setMode("verify");
+      return;
+  }
 
       const result = await loginUser(email, password);
 
@@ -93,45 +129,61 @@ export function AuthSection() {
         profile.user.role === "SUPER_ADMIN" ||
         profile.user.role === "STORE_ADMIN"
       ) {
-        navigate("/admin");
+        navigate("/store-management");
       } else {
         navigate("/");
       }
 
       await loadProfile();
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        alert(error.response?.data?.message || "Terjadi kesalahan");
-        return;
-      }
-
-      alert("Terjadi kesalahan");
-    }
+    } 
+    catch (error) {
+  if (axios.isAxiosError(error)) {
+    alert(error.response?.data?.message || "Terjadi kesalahan");
+    return;
   }
 
-  async function handleResendVerificationEmail() {
-    try {
-      if (!email) {
-        alert("Masukkan email terlebih dahulu");
-        return;
-      }
-
-      const result = await resendVerificationEmail(email);
-
-      console.log("RESEND VERIFICATION RESULT:", result);
-
-      alert(result.message || "Verification email berhasil dikirim ulang.");
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        alert(
-          error.response?.data?.message || "Gagal resend verification email",
-        );
-        return;
-      }
-
-      alert("Gagal resend verification email");
-    }
+  alert("Terjadi kesalahan");
+}
   }
+
+async function loadMyStore() {
+  try {
+    const result = await getStores();
+    console.log("MY STORE RESULT:", result);
+    const firstStore = result.stores?.[0];
+
+    if (firstStore) {
+      setMyStoreId(firstStore.id);
+    } else {
+      setMyStoreId(null);
+    }
+  } catch(error) {
+    console.error("Error loading my store:", error);
+    setMyStoreId(null);
+  }
+}
+
+async function handleResendVerificationEmail() {
+  try {
+    if (!email) {
+      alert("Masukkan email terlebih dahulu");
+      return;
+    }
+
+    const result = await resendVerificationEmail(email);
+
+    console.log("RESEND VERIFICATION RESULT:", result);
+
+    alert(result.message || "Verification email berhasil dikirim ulang.");
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      alert(error.response?.data?.message || "Gagal resend verification email");
+      return;
+    }
+
+    alert("Gagal resend verification email");
+  }
+}
 
   async function handleUpdateProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -145,14 +197,15 @@ export function AuthSection() {
 
       alert(result.message || "Profile berhasil diperbarui");
       setUser(result.user);
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        alert(error.response?.data?.message || "Gagal update profile");
-        return;
-      }
+    } 
+    catch (error) {
+  if (axios.isAxiosError(error)) {
+    alert(error.response?.data?.message || "Gagal update profile");
+    return;
+  }
 
-      alert("Gagal update profile");
-    }
+  alert("Gagal update profile");
+}
   }
 
   function handleLogout() {
@@ -163,103 +216,110 @@ export function AuthSection() {
   }
 
   async function handleVerifyEmail(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  event.preventDefault();
 
-    try {
-      const result = await verifyEmail(token, newPassword);
+  try {
+    
+    const result = await verifyEmail(token, newPassword);
 
-      alert(result.message || "Email berhasil diverifikasi. Silakan login.");
-      setMode("login");
-      setToken("");
-      setNewPassword("");
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        alert(error.response?.data?.message || "Gagal verifikasi email");
-        return;
-      }
-
-      alert("Gagal verifikasi email");
+    alert(result.message || "Email berhasil diverifikasi. Silakan login.");
+    setMode("login");
+    setToken("");
+    setNewPassword("");
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      alert(error.response?.data?.message || "Gagal verifikasi email");
+      return;
     }
+
+    alert("Gagal verifikasi email");
   }
+}
 
-  async function handleCreateMyStore(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+async function handleCreateMyStore(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
 
-    try {
-      const result = await registerMyStore({
-        name: storeName,
-        address: storeAddress,
-        city: storeCity,
-        latitude: Number(storeLatitude),
-        longitude: Number(storeLongitude),
-      });
+  try {
+    const result = await registerMyStore({
+      name: storeName,
+      address: storeAddress,
+      city: storeCity,
+      latitude: Number(storeLatitude),
+      longitude: Number(storeLongitude),
+    });
 
-      alert(result.message || "Store berhasil dibuat");
-      setUser(result.user);
-      setShowCreateStore(false);
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        alert(error.response?.data?.message || "Gagal membuat store");
-        return;
-      }
+    alert(result.message || "Store berhasil dibuat");
+    setUser(result.user);
+setMyStoreId(result.store.id);
+setShowCreateStore(false);
 
-      alert("Gagal membuat store");
+navigate(`/store/${result.store.id}`);
+
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      alert(error.response?.data?.message || "Gagal membuat store");
+      return;
     }
+
+    alert("Gagal membuat store");
   }
+}
 
-  async function handleForgotPassword(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+async function handleForgotPassword(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
 
-    try {
-      const result = await forgotPassword(email);
+  try {
+    const result = await forgotPassword(email);
 
-      alert(result.message || "Link reset password berhasil dikirim.");
-      setMode("reset");
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        alert(error.response?.data?.message || "Gagal request reset password");
-        return;
-      }
-
-      alert("Gagal request reset password");
+    alert(result.message || "Link reset password berhasil dikirim.");
+    setMode("reset");
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      alert(error.response?.data?.message || "Gagal request reset password");
+      return;
     }
+
+    alert("Gagal request reset password");
   }
+}
 
-  async function handleResetPassword(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+async function handleResetPassword(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
 
-    try {
-      const result = await resetPassword(token, newPassword);
+  try {
+    const result = await resetPassword(token, newPassword);
 
-      alert(result.message || "Password berhasil direset. Silakan login.");
-      setMode("login");
-      setToken("");
-      setNewPassword("");
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        alert(error.response?.data?.message || "Gagal reset password");
-        return;
-      }
-
-      alert("Gagal reset password");
+    alert(result.message || "Password berhasil direset. Silakan login.");
+    setMode("login");
+    setToken("");
+    setNewPassword("");
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      alert(error.response?.data?.message || "Gagal reset password");
+      return;
     }
+
+    alert("Gagal reset password");
   }
+}
 
   if (user) {
     return (
       <section className="mx-auto my-6 max-w-md rounded-xl bg-white p-6 shadow">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold">Profile</h2>
+          <h2 className="text-xl font-semibold">Profile</h2>
 
-            <p className="text-sm text-slate-500">{user.email}</p>
+          <p className="text-sm text-slate-500">{user.email}</p>
 
-            <p className="text-sm text-slate-500">Role: {user.role}</p>
-
-            <p className="text-sm text-slate-500">
-              Status: {user.isVerified ? "Verified" : "Not Verified"}
+          <p className="text-sm text-slate-500">
+            Role: {user.role}
             </p>
-          </div>
+
+           <p className="text-sm text-slate-500">
+            Status: {user.isVerified ? "Verified" : "Not Verified"}
+          </p>
+        </div>
 
           <button
             type="button"
@@ -270,90 +330,109 @@ export function AuthSection() {
           </button>
         </div>
 
-        {(user.role === "STORE_ADMIN" || user.role === "SUPER_ADMIN") && (
-          <Link
-            to="/admin"
-            className="mb-4 block w-full rounded bg-red-600 px-4 py-2 text-center text-white"
-          >
-            Go to Admin Dashboard
-          </Link>
-        )}
+{(user.role === "STORE_ADMIN" || user.role === "SUPER_ADMIN") && (
+  <Link
+    to="/store-management"
+    className="mb-4 block w-full rounded bg-red-600 px-4 py-2 text-center text-white"
+  >
+    Go to Store Management
+  </Link>
+)}
 
-        {user.role === "CUSTOMER" && !showCreateStore && (
-          <button
-            type="button"
-            onClick={() => setShowCreateStore(true)}
-            className="mb-4 w-full rounded bg-blue-600 px-4 py-2 text-white"
-          >
-            Create My Store
-          </button>
-        )}
+{user.role === "STORE_ADMIN" && myStoreId && (
+  <Link
+    to={`/store/${myStoreId}`}
+    className="mb-4 block w-full rounded bg-green-600 px-4 py-2 text-center text-white"
+  >
+    Go to My Storefront
+  </Link>
+)}
 
-        {user.role === "CUSTOMER" && showCreateStore && (
-          <form
-            onSubmit={handleCreateMyStore}
-            className="mb-4 rounded border p-4"
-          >
-            <h3 className="mb-3 font-semibold">Create My Store</h3>
+{user.role === "STORE_ADMIN" && !myStoreId && (
+  <p className="mb-4 rounded bg-yellow-100 px-4 py-2 text-sm text-yellow-700">
+    Store admin account detected, but no store is connected to this account yet.
+  </p>
+)}
 
-            <input
-              type="text"
-              placeholder="Store name"
-              className="mb-3 w-full rounded border px-3 py-2"
-              value={storeName}
-              onChange={(event) => setStoreName(event.target.value)}
-            />
+<Link
+  to="/"
+  className="mb-4 block w-full rounded bg-slate-700 px-4 py-2 text-center text-white"
+>
+  Back to Home
+</Link>
 
-            <input
-              type="text"
-              placeholder="Address"
-              className="mb-3 w-full rounded border px-3 py-2"
-              value={storeAddress}
-              onChange={(event) => setStoreAddress(event.target.value)}
-            />
+{user.role === "CUSTOMER" && !showCreateStore && (
+  <button
+    type="button"
+    onClick={() => setShowCreateStore(true)}
+    className="mb-4 w-full rounded bg-blue-600 px-4 py-2 text-white"
+  >
+    Create My Store
+  </button>
+)}
 
-            <input
-              type="text"
-              placeholder="City"
-              className="mb-3 w-full rounded border px-3 py-2"
-              value={storeCity}
-              onChange={(event) => setStoreCity(event.target.value)}
-            />
+{user.role === "CUSTOMER" && showCreateStore && (
+  <form onSubmit={handleCreateMyStore} className="mb-4 rounded border p-4">
+    <h3 className="mb-3 font-semibold">Create My Store</h3>
 
-            <input
-              type="number"
-              step="any"
-              placeholder="Latitude"
-              className="mb-3 w-full rounded border px-3 py-2"
-              value={storeLatitude}
-              onChange={(event) => setStoreLatitude(event.target.value)}
-            />
+    <input
+      type="text"
+      placeholder="Store name"
+      className="mb-3 w-full rounded border px-3 py-2"
+      value={storeName}
+      onChange={(event) => setStoreName(event.target.value)}
+    />
 
-            <input
-              type="number"
-              step="any"
-              placeholder="Longitude"
-              className="mb-4 w-full rounded border px-3 py-2"
-              value={storeLongitude}
-              onChange={(event) => setStoreLongitude(event.target.value)}
-            />
+    <input
+      type="text"
+      placeholder="Address"
+      className="mb-3 w-full rounded border px-3 py-2"
+      value={storeAddress}
+      onChange={(event) => setStoreAddress(event.target.value)}
+    />
 
-            <button
-              type="submit"
-              className="w-full rounded bg-green-600 px-4 py-2 text-white"
-            >
-              Submit Store
-            </button>
+    <input
+      type="text"
+      placeholder="City"
+      className="mb-3 w-full rounded border px-3 py-2"
+      value={storeCity}
+      onChange={(event) => setStoreCity(event.target.value)}
+    />
 
-            <button
-              type="button"
-              onClick={() => setShowCreateStore(false)}
-              className="mt-3 w-full rounded bg-slate-500 px-4 py-2 text-white"
-            >
-              Cancel
-            </button>
-          </form>
-        )}
+    <input
+      type="number"
+      step="any"
+      placeholder="Latitude"
+      className="mb-3 w-full rounded border px-3 py-2"
+      value={storeLatitude}
+      onChange={(event) => setStoreLatitude(event.target.value)}
+    />
+
+    <input
+      type="number"
+      step="any"
+      placeholder="Longitude"
+      className="mb-4 w-full rounded border px-3 py-2"
+      value={storeLongitude}
+      onChange={(event) => setStoreLongitude(event.target.value)}
+    />
+
+    <button
+      type="submit"
+      className="w-full rounded bg-green-600 px-4 py-2 text-white"
+    >
+      Submit Store
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setShowCreateStore(false)}
+      className="mt-3 w-full rounded bg-slate-500 px-4 py-2 text-white"
+    >
+      Cancel
+    </button>
+  </form>
+)}
 
         <form onSubmit={handleUpdateProfile}>
           <input
@@ -392,141 +471,147 @@ export function AuthSection() {
   }
 
   if (mode === "verify") {
-    return (
-      <section className="mx-auto my-6 max-w-md rounded-xl bg-white p-6 shadow">
-        <h2 className="mb-4 text-xl font-semibold">Verify Email</h2>
+  return (
+    <section className="mx-auto my-6 max-w-md rounded-xl bg-white p-6 shadow">
+      <h2 className="mb-4 text-xl font-semibold">Verify Email</h2>
 
-        <form onSubmit={handleVerifyEmail}>
-          <input
-            type="email"
-            placeholder="Email"
-            className="mb-3 w-full rounded border px-3 py-2"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
+      <form onSubmit={handleVerifyEmail}>
+        <input
+  type="email"
+  placeholder="Email"
+  className="mb-3 w-full rounded border px-3 py-2"
+  value={email}
+  onChange={(event) => setEmail(event.target.value)}
+/>
+        
+        <input
+          type="text"
+          placeholder="Verification token"
+          className="mb-3 w-full rounded border px-3 py-2"
+          value={token}
+          onChange={(event) => setToken(event.target.value)}
+        />
 
-          <input
-            type="text"
-            placeholder="Verification token"
-            className="mb-3 w-full rounded border px-3 py-2"
-            value={token}
-            onChange={(event) => setToken(event.target.value)}
-          />
-
-          <input
-            type="password"
-            placeholder="Set password"
-            className="mb-4 w-full rounded border px-3 py-2"
-            value={newPassword}
-            onChange={(event) => setNewPassword(event.target.value)}
-          />
-
-          <button
-            type="submit"
-            className="w-full rounded bg-green-600 px-4 py-2 text-white"
-          >
-            Verify Email
-          </button>
-
-          <button
-            type="button"
-            onClick={handleResendVerificationEmail}
-            className="mt-3 w-full rounded bg-slate-600 px-4 py-2 text-white"
-          >
-            Resend Verification Email
-          </button>
-        </form>
+        <input
+          type="password"
+          placeholder="Set password"
+          className="mb-4 w-full rounded border px-3 py-2"
+          value={newPassword}
+          onChange={(event) => setNewPassword(event.target.value)}
+        />
 
         <button
-          type="button"
-          onClick={() => setMode("login")}
-          className="mt-3 text-sm text-green-700"
+          type="submit"
+          className="w-full rounded bg-green-600 px-4 py-2 text-white"
         >
-          Back to Login
+          Verify Email
         </button>
-      </section>
-    );
-  }
-
-  if (mode === "forgot") {
-    return (
-      <section className="mx-auto my-6 max-w-md rounded-xl bg-white p-6 shadow">
-        <h2 className="mb-4 text-xl font-semibold">Forgot Password</h2>
-
-        <form onSubmit={handleForgotPassword}>
-          <input
-            type="email"
-            placeholder="Email"
-            className="mb-4 w-full rounded border px-3 py-2"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-
-          <button
-            type="submit"
-            className="w-full rounded bg-green-600 px-4 py-2 text-white"
-          >
-            Send Reset Link
-          </button>
-        </form>
 
         <button
-          type="button"
-          onClick={() => setMode("login")}
-          className="mt-3 text-sm text-green-700"
-        >
-          Back to Login
-        </button>
-      </section>
-    );
-  }
+  type="button"
+  onClick={handleResendVerificationEmail}
+  className="mt-3 w-full rounded bg-slate-600 px-4 py-2 text-white"
+>
+  Resend Verification Email
+</button>
+      </form>
 
-  if (mode === "reset") {
-    return (
-      <section className="mx-auto my-6 max-w-md rounded-xl bg-white p-6 shadow">
-        <h2 className="mb-4 text-xl font-semibold">Reset Password</h2>
+      <button
+        type="button"
+        onClick={() => setMode("login")}
+        className="mt-3 text-sm text-green-700"
+      >
+        Back to Login
+      </button>
+    </section>
+  );
+}
 
-        <form onSubmit={handleResetPassword}>
-          <input
-            type="text"
-            placeholder="Reset token"
-            className="mb-3 w-full rounded border px-3 py-2"
-            value={token}
-            onChange={(event) => setToken(event.target.value)}
-          />
+if (mode === "forgot") {
+  return (
+    <section className="mx-auto my-6 max-w-md rounded-xl bg-white p-6 shadow">
+      <h2 className="mb-4 text-xl font-semibold">Forgot Password</h2>
 
-          <input
-            type="password"
-            placeholder="New password"
-            className="mb-4 w-full rounded border px-3 py-2"
-            value={newPassword}
-            onChange={(event) => setNewPassword(event.target.value)}
-          />
-
-          <button
-            type="submit"
-            className="w-full rounded bg-green-600 px-4 py-2 text-white"
-          >
-            Reset Password
-          </button>
-        </form>
+      <form onSubmit={handleForgotPassword}>
+        <input
+          type="email"
+          placeholder="Email"
+          className="mb-4 w-full rounded border px-3 py-2"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+        />
 
         <button
-          type="button"
-          onClick={() => setMode("login")}
-          className="mt-3 text-sm text-green-700"
+          type="submit"
+          className="w-full rounded bg-green-600 px-4 py-2 text-white"
         >
-          Back to Login
+          Send Reset Link
         </button>
-      </section>
-    );
-  }
+      </form>
+
+      <button
+        type="button"
+        onClick={() => setMode("login")}
+        className="mt-3 text-sm text-green-700"
+      >
+        Back to Login
+      </button>
+    </section>
+  );
+}
+
+if (mode === "reset") {
+  return (
+    <section className="mx-auto my-6 max-w-md rounded-xl bg-white p-6 shadow">
+      <h2 className="mb-4 text-xl font-semibold">Reset Password</h2>
+
+      <form onSubmit={handleResetPassword}>
+        <input
+          type="text"
+          placeholder="Reset token"
+          className="mb-3 w-full rounded border px-3 py-2"
+          value={token}
+          onChange={(event) => setToken(event.target.value)}
+        />
+
+        <input
+          type="password"
+          placeholder="New password"
+          className="mb-4 w-full rounded border px-3 py-2"
+          value={newPassword}
+          onChange={(event) => setNewPassword(event.target.value)}
+        />
+
+        <button
+          type="submit"
+          className="w-full rounded bg-green-600 px-4 py-2 text-white"
+        >
+          Reset Password
+        </button>
+      </form>
+
+      <button
+        type="button"
+        onClick={() => setMode("login")}
+        className="mt-3 text-sm text-green-700"
+      >
+        Back to Login
+      </button>
+    </section>
+  );
+}
 
   return (
     <section className="mx-auto my-6 max-w-md rounded-xl bg-white p-6 shadow">
-      <h2 className="mb-4 text-xl font-semibold">
-        {mode === "register" ? "Register" : "Login"}
-      </h2>
+      <h2 className="mb-2 text-xl font-semibold">
+  {mode === "register" ? "Register with Email" : "Login with Email"}
+</h2>
+
+<p className="mb-4 text-sm text-slate-500">
+  {mode === "register"
+    ? "Enter your email. Verification will be sent to your email before setting password."
+    : "Login using your registered email and password."}
+</p>
 
       <form onSubmit={handleSubmit}>
         {mode === "register" && (
@@ -563,33 +648,39 @@ export function AuthSection() {
         >
           {mode === "register" ? "Register" : "Login"}
         </button>
+        {mode === "login" && (
+  <div className="mt-4">
+    <GoogleLogin
+      onSuccess={handleGoogleLoginSuccess}
+      onError={() => alert("Google login gagal")}
+    />
+  </div>
+)}
       </form>
 
       <button
-        type="button"
-        onClick={() => setMode(mode === "register" ? "login" : "register")}
-        className="mt-3 text-sm text-green-700"
-      >
-        {mode === "register"
-          ? "Sudah punya akun? Login"
-          : "Belum punya akun? Register"}
-      </button>
+  type="button"
+  onClick={() => setMode(mode === "register" ? "login" : "register")}
+  className="mt-3 text-sm text-green-700"
+>
+  {mode === "register" ? "Sudah punya akun? Login" : "Belum punya akun? Register"}
+</button>
 
-      <button
-        type="button"
-        onClick={() => setMode("verify")}
-        className="mt-3 block text-sm text-green-700"
-      >
-        Verify email
-      </button>
+<button
+  type="button"
+  onClick={() => setMode("verify")}
+  className="mt-3 block text-sm text-green-700"
+>
+  Verify email
+</button>
 
-      <button
-        type="button"
-        onClick={() => setMode("forgot")}
-        className="mt-2 block text-sm text-green-700"
-      >
-        Forgot password?
-      </button>
+<button
+  type="button"
+  onClick={() => setMode("forgot")}
+  className="mt-2 block text-sm text-green-700"
+>
+  Forgot password?
+</button>
     </section>
   );
 }

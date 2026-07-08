@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { prisma } from "./prismaService.js";
+import { OAuth2Client } from "google-auth-library";
 import {
   sendVerificationEmail,
   sendResetPasswordEmail,
@@ -24,6 +25,8 @@ function createJwtToken(user: { id: number; email: string; role: string }) {
     },
   );
 }
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export async function registerUser(email: string, name?: string) {
   const existingUser = await prisma.user.findUnique({
@@ -57,7 +60,6 @@ export async function registerUser(email: string, name?: string) {
     },
   });
 
-  // Kirim email verifikasi ke user
   await sendVerificationEmail(user.email, verificationToken);
 
   return {
@@ -110,6 +112,46 @@ export async function resendVerificationEmail(email: string) {
 
   return {
     message: "Email verifikasi telah dikirim ulang. Silakan cek email Anda.",
+  };
+}
+
+//store admin diluar user
+export async function registerStoreAdmin(userId: number) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new Error("User tidak ditemukan");
+  }
+
+  if (!user.isVerified) {
+    throw new Error("Silakan verifikasi email terlebih dahulu");
+  }
+
+  if (user.role === "STORE_ADMIN") {
+    throw new Error("User sudah terdaftar sebagai Store Admin");
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      role: "STORE_ADMIN",
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      phone: true,
+      profilePicture: true,
+      isVerified: true,
+      role: true,
+    },
+  });
+
+  return {
+    message: "Berhasil register sebagai Store Admin",
+    user: updatedUser,
   };
 }
 
@@ -197,6 +239,79 @@ export async function loginUser(email: string, password: string) {
   };
 }
 
+export async function loginWithGoogle(idToken: string) {
+  const ticket = await googleClient.verifyIdToken({
+    idToken,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+
+  const payload = ticket.getPayload();
+
+  if (!payload) {
+    throw new Error("Google token tidak valid");
+  }
+
+  if (!payload.email) {
+    throw new Error("Email Google tidak ditemukan");
+  }
+
+  if (!payload.email_verified) {
+    throw new Error("Email Google belum terverifikasi");
+  }
+
+  let user = await prisma.user.findUnique({
+    where: {
+      email: payload.email,
+    },
+  });
+
+  if (!user) {
+    const temporaryPassword = crypto.randomUUID();
+    const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
+
+    user = await prisma.user.create({
+      data: {
+        email: payload.email,
+        name: payload.name ?? null,
+        password: hashedPassword,
+        isVerified: true,
+        profilePicture: payload.picture ?? null,
+        role: "CUSTOMER",
+      },
+    });
+  } else {
+    user = await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        isVerified: true,
+        name: user.name || payload.name || null,
+        profilePicture: user.profilePicture || payload.picture || null,
+      },
+    });
+  }
+
+  const token = createJwtToken({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+  });
+
+  return {
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+      profilePicture: user.profilePicture,
+      role: user.role,
+      isVerified: user.isVerified,
+    },
+  };
+}
+
 export async function getProfile(userId: number) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -247,12 +362,11 @@ export async function requestResetPassword(email: string) {
     },
   });
 
-  // Kirim email reset password ke user
   await sendResetPasswordEmail(user.email, resetToken);
 
   return {
-    message:
-      "Email reset password telah dikirim. Silakan cek email Anda.",
+    message: "Reset password email berhasil dikirim.",
+    resetLink: `http://localhost:5173/confirm-reset-password?token=${resetToken}`,
   };
 }
 

@@ -5,10 +5,13 @@ import {
   login,
   me,
   register,
-  resendVerification,
+  registerAsStoreAdmin,
   updateProfile,
   verifyEmail,
+  resendVerificationEmail,
+  googleLogin,
 } from "../controller/authController.js";
+import { requireAuth, requireVerified } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
@@ -16,10 +19,16 @@ router.get("/me", me);
 
 router.post("/register", register);
 router.post("/verify-email", verifyEmail);
-router.post("/resend-verification", resendVerification);
 router.post("/login", login);
+router.post("/google", googleLogin);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", confirmResetPassword);
+router.post("/resend-verification", resendVerificationEmail);
+router.post("/register-store-admin",
+  requireAuth,
+  requireVerified,
+  registerAsStoreAdmin,
+);
 
 router.put("/profile", updateProfile);
 
