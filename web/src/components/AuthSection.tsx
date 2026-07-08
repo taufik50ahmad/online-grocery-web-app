@@ -12,6 +12,7 @@ import {
   resetPassword,
 } from "../services/authService"; 
 import { registerMyStore } from "../services/storeService";
+import { getStores } from "../services/storeService";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
@@ -35,6 +36,7 @@ export function AuthSection() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [myStoreId, setMyStoreId] = useState<number | null>(null);
   const [phone, setPhone] = useState("");
   const [profilePicture, setProfilePicture] = useState("");
 
@@ -56,6 +58,10 @@ export function AuthSection() {
       setName(result.user?.name || "");
       setPhone(result.user?.phone || "");
       setProfilePicture(result.user?.profilePicture || "");
+
+      if (result.user.role === "STORE_ADMIN") {
+  await loadMyStore();
+}
     } catch {
       setUser(null);
     }
@@ -139,6 +145,23 @@ async function handleGoogleLoginSuccess(
   alert("Terjadi kesalahan");
 }
   }
+
+async function loadMyStore() {
+  try {
+    const result = await getStores();
+    console.log("MY STORE RESULT:", result);
+    const firstStore = result.stores?.[0];
+
+    if (firstStore) {
+      setMyStoreId(firstStore.id);
+    } else {
+      setMyStoreId(null);
+    }
+  } catch(error) {
+    console.error("Error loading my store:", error);
+    setMyStoreId(null);
+  }
+}
 
 async function handleResendVerificationEmail() {
   try {
@@ -227,7 +250,11 @@ async function handleCreateMyStore(event: FormEvent<HTMLFormElement>) {
 
     alert(result.message || "Store berhasil dibuat");
     setUser(result.user);
-    setShowCreateStore(false);
+setMyStoreId(result.store.id);
+setShowCreateStore(false);
+
+navigate(`/store/${result.store.id}`);
+
   } catch (error) {
     if (axios.isAxiosError(error)) {
       alert(error.response?.data?.message || "Gagal membuat store");
@@ -310,6 +337,21 @@ async function handleResetPassword(event: FormEvent<HTMLFormElement>) {
   >
     Go to Store Management
   </Link>
+)}
+
+{user.role === "STORE_ADMIN" && myStoreId && (
+  <Link
+    to={`/store/${myStoreId}`}
+    className="mb-4 block w-full rounded bg-green-600 px-4 py-2 text-center text-white"
+  >
+    Go to My Storefront
+  </Link>
+)}
+
+{user.role === "STORE_ADMIN" && !myStoreId && (
+  <p className="mb-4 rounded bg-yellow-100 px-4 py-2 text-sm text-yellow-700">
+    Store admin account detected, but no store is connected to this account yet.
+  </p>
 )}
 
 <Link

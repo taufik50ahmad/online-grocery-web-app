@@ -5,6 +5,8 @@ import { LoginPage as CustomerLoginPage } from "@/pages/LoginPage";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AdminGuard from "@/components/admin/AdminGuard";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
+import { StoreManagementPage } from "@/pages/StoreManagementPage";
+import { StoreFrontPage } from "@/pages/StoreFrontPage";
 import StoreAdminManagement from "@/pages/admin/StoreAdminManagement";
 import LoginPage from "@/pages/admin/LoginPage";
 import CategoryManagement from "@/pages/admin/CategoryManagement";
@@ -26,6 +28,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomePages />} />
         <Route path="/login" element={<CustomerLoginPage />} />
+        <Route path="/store-management" element={<StoreManagementPage />} />
+<Route path="/store/:storeId" element={<StoreFrontPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />

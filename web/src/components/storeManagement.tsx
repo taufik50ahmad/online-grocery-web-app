@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   assignStoreAdmin,
   createStore,
@@ -31,6 +31,7 @@ type StoreManagementProps = {
 };
 
 export function StoreManagement({ userRole }: StoreManagementProps) {
+  const navigate = useNavigate();
   const isSuperAdmin = userRole === "SUPER_ADMIN";
   const [stores, setStores] = useState<Store[]>([]);
   const [editingStoreId, setEditingStoreId] = useState<number | null>(null);

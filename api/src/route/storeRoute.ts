@@ -3,6 +3,7 @@ import {
   assignAdminToStore,
   createStoreData,
   deleteStoreData,
+  getPublicStoreList,
   getStoreList,
   registerMyStoreData,
   updateStoreData,
@@ -14,6 +15,8 @@ import {
   from "../middleware/authMiddleware.js";
 
 const router = Router();
+
+router.get("/public", getPublicStoreList);
 
 router.use(requireAuth);
 router.use(requireVerified);

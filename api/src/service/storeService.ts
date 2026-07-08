@@ -1,7 +1,31 @@
 import { prisma } from "./prismaService.js";
 
 export async function getStores(userId: number, role: string) {
-    if (role === "SUPER_ADMIN") {
+  const includeStoreAdmin = {
+    storeAdmin: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+      },
+    },
+  };
+
+  // PUBLIC HOMEPAGE
+  if (!userId || !role) {
+    return prisma.store.findMany({
+      where: {
+        isActive: true,
+      },
+      include: includeStoreAdmin,
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }  
+  
+  if (role === "SUPER_ADMIN") {
     return prisma.store.findMany({
       include: {
         storeAdmin: {
@@ -41,6 +65,17 @@ if (role === "STORE_ADMIN") {
   }
 
   return [];
+}
+
+export async function getPublicStores() {
+  return prisma.store.findMany({
+    where: {
+      isActive: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
 }
 
 export async function createStore(data: {
