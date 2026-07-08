@@ -114,9 +114,8 @@ export function StoreFrontPage() {
           </div>
         </div>
 
-          <ProductManagement canManageProduct={canManageProduct} />
-
-        </div>
+        <ProductManagement canManageProduct={canManageProduct} />
+      </div>
     </main>
   );
 }

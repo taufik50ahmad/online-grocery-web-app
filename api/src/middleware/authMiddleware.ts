@@ -23,7 +23,7 @@ function getTokenFromHeader(req: Request) {
 export async function requireAuth(
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   try {
     const token = getTokenFromHeader(req);
@@ -66,11 +66,12 @@ export async function requireAuth(
 export function requireVerified(
   req: AuthenticatedRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   if (!req.user?.isVerified) {
     return res.status(403).json({
-      message: "Akun belum terverifikasi. Silakan verifikasi email terlebih dahulu.",
+      message:
+        "Akun belum terverifikasi. Silakan verifikasi email terlebih dahulu.",
     });
   }
 
@@ -81,7 +82,7 @@ export function requireRole(allowedRoles: string[]) {
   return function (
     req: AuthenticatedRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     if (!req.user) {
       return res.status(401).json({

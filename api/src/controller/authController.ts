@@ -114,6 +114,7 @@ const { email, name } = validation.data;
 
     return res.status(201).json({
       ...result,
+      message: "Registrasi berhasil. Silakan verifikasi email.",
     });
   } catch (error) {
     return res.status(400).json({
@@ -235,7 +236,10 @@ const { email } = validation.data;
 
     const result = await requestResetPassword(email);
 
-    return res.json(result);
+    return res.json({
+      ...result,
+      message: "Reset password link berhasil dibuat.",
+    });
   } catch (error) {
     return res.status(400).json({
       message:

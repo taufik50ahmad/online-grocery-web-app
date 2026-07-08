@@ -17,7 +17,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-
 function getProductImage(productName: string) {
   const name = productName.toLowerCase();
 
@@ -48,7 +47,9 @@ type ProductManagementProps = {
   canManageProduct: boolean;
 };
 
-export function ProductManagement({ canManageProduct }: ProductManagementProps) {
+export function ProductManagement({
+  canManageProduct,
+}: ProductManagementProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
 

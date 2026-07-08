@@ -1,54 +1,76 @@
 import prisma from "../lib/prisma.js";
 
-export default async function addtoCartService(productId: number, quantity: number, userId: number){
-        const products = await prisma.product.findUnique({
-            where:{
-                id: productId,
-            },
-        })
+export default async function addtoCartService(
+  productId: number,
+  quantity: number,
+  userId: number
+) {
+  console.time("TOTAL");
 
-        if (!products){
-            throw new Error("Product not found")
-        }
+  console.time("findProduct");
+  const products = await prisma.product.findUnique({
+    where: {
+      id: productId,
+    },
+  });
+  console.timeEnd("findProduct");
 
-        if (quantity <= 0){
-            throw new Error("Quantity must be greater than 0")
-        }
+  if (!products) {
+    console.timeEnd("TOTAL");
+    throw new Error("Product not found");
+  }
 
-        if(products.stock < quantity){
-            throw new Error("Product is out of stock")
-        }
+  if (quantity <= 0) {
+    console.timeEnd("TOTAL");
+    throw new Error("Quantity must be greater than 0");
+  }
 
-        const existingCart = await prisma.cartItem.findFirst({
-            where: {
-                productId: products.id,
-                userId: userId
-            },
-            include:{
-                product: true
-            }
-        })
+  if (products.stock < quantity) {
+    console.timeEnd("TOTAL");
+    throw new Error("Product is out of stock");
+  }
 
-        if(existingCart){
-            const newQuantity = existingCart.quantity + 1
-            return await prisma.cartItem.update({
-                where: {id: existingCart.id},
-                data: {
-                    quantity: newQuantity,
-                    totalPrice: existingCart.product.price * newQuantity
-                }
-            })
-        }
+  console.time("findCart");
+  const existingCart = await prisma.cartItem.findFirst({
+    where: {
+      productId: products.id,
+      userId: userId,
+    },
+  });
+  console.timeEnd("findCart");
 
-        const cart = await prisma.cartItem.create({
-            data: {
-                productId: products.id,
-                userId: 1,
-                productName: products.name,
-                quantity: quantity,
-                totalPrice: products.price * quantity,
-            },
-        })
+  if (existingCart) {
+    console.time("updateCart");
 
-        return cart
+    const result = await prisma.cartItem.update({
+      where: { id: existingCart.id },
+      data: {
+        quantity: existingCart.quantity + 1,
+        totalPrice: products.price * (existingCart.quantity + 1),
+      },
+    });
+
+    console.timeEnd("updateCart");
+    console.timeEnd("TOTAL");
+
+    return result;
+  }
+
+  console.time("createCart");
+
+  const TEST_USER_ID = 1;
+  const cart = await prisma.cartItem.create({
+    data: {
+      productId: products.id,
+      userId: TEST_USER_ID,
+      productName: products.name,
+      quantity: quantity,
+      totalPrice: products.price * quantity,
+    },
+  });
+
+  console.timeEnd("createCart");
+  console.timeEnd("TOTAL");
+
+  return cart;
 }

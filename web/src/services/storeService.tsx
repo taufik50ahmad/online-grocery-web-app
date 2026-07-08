@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:9000/api/stores";
+const API_URL = `${import.meta.env.VITE_API_URL}/api/stores`;
 
 function getAuthHeader() {
   const token = localStorage.getItem("token");
@@ -40,7 +40,7 @@ export async function updateStore(
     city?: string;
     latitude?: number;
     longitude?: number;
-  }
+  },
 ) {
   const response = await axios.put(`${API_URL}/${id}`, data, {
     headers: getAuthHeader(),
@@ -79,7 +79,7 @@ export async function assignStoreAdmin(storeId: number, userId: number) {
     },
     {
       headers: getAuthHeader(),
-    }
+    },
   );
 
   return response.data;

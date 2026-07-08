@@ -25,7 +25,7 @@ const assignStoreAdminSchema = z.object({
 
 export async function getStoreList(req: Request, res: Response) {
   try {
-    const stores = await getStores();
+    const stores = await getStores(req.query as any, req.params as any);
 
     return res.json({
       stores,
@@ -87,7 +87,7 @@ export async function updateStoreData(req: Request, res: Response) {
 
 export async function registerMyStoreData(
   req: AuthenticatedRequest,
-  res: Response
+  res: Response,
 ) {
   try {
     if (!req.user) {
@@ -179,4 +179,3 @@ type AuthenticatedRequest = Request & {
     isVerified: boolean;
   };
 };
-

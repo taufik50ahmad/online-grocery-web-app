@@ -1,51 +1,60 @@
-import axios from "axios";
+import api from "./api";
+import type { Product, ApiResponse, PaginatedResponse } from "../types";
 
-const API_URL = "http://localhost:9000/api/products";
-
-function getAuthHeader() {
-  const token = localStorage.getItem("token");
-
-  return {
-    Authorization: `Bearer ${token}`,
-  };
-}
-
-export async function getProducts() {
-  const response = await axios.get(API_URL);
-  return response.data;
-}
-
-export async function createProduct(data: {
+export interface ProductPayload {
   name: string;
+  description?: string;
   price: number;
   stock: number;
-}) {
-  const response = await axios.post(API_URL, data, {
-    headers: getAuthHeader(),
-  });
-
-  return response.data;
+  unit?: string;
+  categoryId?: number;
+  images?: { imageUrl: string; isPrimary?: boolean; order?: number }[];
 }
 
-export async function updateProduct(
+export const getProducts = async (
+  page = 1,
+  limit = 10,
+  search = "",
+  categoryId?: number,
+): Promise<PaginatedResponse<Product>> => {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+    ...(search && { search }),
+    ...(categoryId && { categoryId: String(categoryId) }),
+  });
+  const res = await api.get(`/products?${params}`);
+  return res.data;
+};
+
+export const getProductById = async (id: number): Promise<ApiResponse<Product>> => {
+  const res = await api.get(`/products/${id}`);
+  return res.data;
+};
+
+export const createProduct = async (
+  payload: ProductPayload,
+): Promise<ApiResponse<Product>> => {
+  const res = await api.post("/products", payload);
+  return res.data;
+};
+
+export const updateProduct = async (
   id: number,
-  data: {
-    name?: string;
-    price?: number;
-    stock?: number;
-  }
-) {
-  const response = await axios.put(`${API_URL}/${id}`, data, {
-    headers: getAuthHeader(),
-  });
+  payload: Partial<ProductPayload>,
+): Promise<ApiResponse<Product>> => {
+  const res = await api.put(`/products/${id}`, payload);
+  return res.data;
+};
 
-  return response.data;
-}
+export const deleteProduct = async (id: number): Promise<ApiResponse<null>> => {
+  const res = await api.delete(`/products/${id}`);
+  return res.data;
+};
 
-export async function deleteProduct(id: number) {
-  const response = await axios.delete(`${API_URL}/${id}`, {
-    headers: getAuthHeader(),
-  });
-
-  return response.data;
-}
+export const toggleProductStatus = async (
+  id: number,
+): Promise<ApiResponse<Product>> => {
+  const res = await api.patch(`/products/${id}/toggle`);
+  return res.data;
+};

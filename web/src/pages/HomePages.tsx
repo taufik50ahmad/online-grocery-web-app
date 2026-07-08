@@ -75,6 +75,7 @@ export default function HomePages() {
         query={query}
         setQuery={setQuery}
         onAuthClick={() => navigate("/login")}
+        onCartClick={() => navigate("/cart")}
       />
       <LocationStoreCard
         selectedStore={selectedStore}

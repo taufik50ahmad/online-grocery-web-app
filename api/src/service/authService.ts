@@ -62,7 +62,6 @@ export async function registerUser(email: string, name?: string) {
 
   await sendVerificationEmail(user.email, verificationToken);
 
-
   return {
     user: {
       id: user.id,
@@ -71,8 +70,48 @@ export async function registerUser(email: string, name?: string) {
       isVerified: user.isVerified,
       role: user.role,
     },
-    message: "Registrasi berhasil. silahkan cek email untuk verifikasi.",
-    verificationLink: `http://localhost:5173/verify-email?token=${verificationToken}`,
+    message:
+      "Email verifikasi telah dikirim. Silakan cek email Anda untuk verifikasi.",
+  };
+}
+
+export async function resendVerificationEmail(email: string) {
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    throw new Error("User tidak ditemukan");
+  }
+
+  if (user.isVerified) {
+    throw new Error("Email sudah diverifikasi");
+  }
+
+  // Hapus token verifikasi lama
+  await prisma.userToken.deleteMany({
+    where: {
+      userId: user.id,
+      type: "EMAIL_VERIFICATION",
+    },
+  });
+
+  const verificationToken = createRandomToken();
+
+  await prisma.userToken.create({
+    data: {
+      userId: user.id,
+      token: verificationToken,
+      type: "EMAIL_VERIFICATION",
+      expiredAt: new Date(Date.now() + 60 * 60 * 1000),
+    },
+  });
+
+  // Kirim ulang email verifikasi
+  await sendVerificationEmail(user.email, verificationToken);
+
+  return {
+    message: "Email verifikasi telah dikirim ulang. Silakan cek email Anda.",
   };
 }
 
@@ -181,7 +220,7 @@ export async function loginUser(email: string, password: string) {
     throw new Error("Email atau password salah");
   }
 
-const token = createJwtToken({
+  const token = createJwtToken({
     id: user.id,
     email: user.email,
     role: user.role,
@@ -296,7 +335,6 @@ export async function getProfile(userId: number) {
   return user;
 }
 
-
 export async function requestResetPassword(email: string) {
   const user = await prisma.user.findUnique({
     where: { email },
@@ -393,47 +431,6 @@ export async function updateProfile(
   });
 
   return user;
-}
-
-export async function resendVerificationEmail(email: string) {
-  const user = await prisma.user.findUnique({
-    where: {
-      email,
-    },
-  });
-
-  if (!user) {
-    throw new Error("User tidak ditemukan");
-  }
-
-  if (user.isVerified) {
-    throw new Error("Email sudah terverifikasi");
-  }
-
-  await prisma.userToken.deleteMany({
-    where: {
-      userId: user.id,
-      type: "EMAIL_VERIFICATION",
-    },
-  });
-
-const token = createRandomToken();
-
-  await prisma.userToken.create({
-    data: {
-      userId: user.id,
-      token,
-      type: "EMAIL_VERIFICATION",
-      expiredAt: new Date(Date.now() + 60 * 60 * 1000),
-    },
-  });
-
-  await sendVerificationEmail(user.email, token);
-
-  return {
-    message: "Verification email berhasil dikirim ulang.",
-    verificationToken: token,
-  };
 }
 
 export function verifyJwtToken(token: string) {
