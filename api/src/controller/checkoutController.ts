@@ -1,18 +1,26 @@
 import type { Request, Response } from "express";
 import checkoutService from "../service/checkoutService.js";
 
+type AuthenticatedRequest = Request & {
+  user?: {
+    id: number;
+    role: string;
+    isVerified?: boolean;
+  };
+};
+
 export default async function checkoutController(
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ) {
   try {
-    const userId = Number(req.body.userId);
-
-    if (!userId) {
-      return res.status(400).json({
-        message: "User ID is required.",
+    if (!req.user) {
+      return res.status(401).json({
+        message: "Silakan login terlebih dahulu.",
       });
     }
+
+    const userId = req.user.id;
 
     const checkout = await checkoutService(userId);
 
@@ -39,10 +47,11 @@ export default async function checkoutController(
       });
     }
 
-    console.error(error);
+    console.error("CHECKOUT ERROR:", error);
 
     return res.status(500).json({
       message: "Internal server error.",
+      error: error.message,
     });
   }
 }

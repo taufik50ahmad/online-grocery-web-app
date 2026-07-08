@@ -17,6 +17,9 @@ import ProductRoutes from "./route/productRoute.js";
 import stockRoutes from "./route/stockRoute.js";
 import discountRoutes from "./route/discountRoute.js";
 import reportRoutes from "./route/reportRoute.js";
+import addtocartRoute from "./route/addtocartRoute.js";
+import getCartRoute from "./route/getCartRoute.js";
+import deleteCartRoute from "./route/deleteCartRoute.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,6 +40,14 @@ app.use("/api/products", productRoute);
 app.use("/api/stocks", stockRoutes);
 app.use("/api/discounts", discountRoutes);
 app.use("/api/reports", reportRoutes);
+
+// purchase
+app.use("/api", addtocartRoute);
+app.use("/api", getCartRoute);
+app.use("/api", decreaseCartRoute);
+app.use("/api", deleteCartRoute);
+app.use("/api", checkoutRoute);
+app.use("/api", getCheckoutRoute);
 
 // Legacy cart routes
 

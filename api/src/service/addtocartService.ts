@@ -5,72 +5,52 @@ export default async function addtoCartService(
   quantity: number,
   userId: number
 ) {
-  console.time("TOTAL");
+  if (!quantity || quantity <= 0) {
+    throw new Error("Quantity must be greater than 0");
+  }
 
-  console.time("findProduct");
-  const products = await prisma.product.findUnique({
+  const product = await prisma.product.findUnique({
     where: {
       id: productId,
     },
   });
-  console.timeEnd("findProduct");
 
-  if (!products) {
-    console.timeEnd("TOTAL");
+  if (!product) {
     throw new Error("Product not found");
   }
 
-  if (quantity <= 0) {
-    console.timeEnd("TOTAL");
-    throw new Error("Quantity must be greater than 0");
-  }
-
-  if (products.stock < quantity) {
-    console.timeEnd("TOTAL");
+  if (product.stock < quantity) {
     throw new Error("Product is out of stock");
   }
 
-  console.time("findCart");
   const existingCart = await prisma.cartItem.findFirst({
     where: {
-      productId: products.id,
-      userId: userId,
+      productId: product.id,
+      userId,
     },
   });
-  console.timeEnd("findCart");
 
   if (existingCart) {
-    console.time("updateCart");
+    const newQuantity = existingCart.quantity + quantity;
 
-    const result = await prisma.cartItem.update({
-      where: { id: existingCart.id },
+    return prisma.cartItem.update({
+      where: {
+        id: existingCart.id,
+      },
       data: {
-        quantity: existingCart.quantity + 1,
-        totalPrice: products.price * (existingCart.quantity + 1),
+        quantity: newQuantity,
+        totalPrice: product.price * newQuantity,
       },
     });
-
-    console.timeEnd("updateCart");
-    console.timeEnd("TOTAL");
-
-    return result;
   }
 
-  console.time("createCart");
-
-  const TEST_USER_ID = 1;
-  const cart = await prisma.cartItem.create({
+  return prisma.cartItem.create({
     data: {
-      productId: products.id,
-      userId: TEST_USER_ID,
-      productName: products.name,
-      quantity: quantity,
-      totalPrice: products.price * quantity,
+      productId: product.id,
+      userId,
+      productName: product.name,
+      quantity,
+      totalPrice: product.price * quantity,
     },
   });
-
-  console.timeEnd("createCart");
-  console.timeEnd("TOTAL");
-
-  return cart;
 }

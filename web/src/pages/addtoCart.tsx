@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-type Product = {
-  id: number;
-  name: string;
-  price: number;
-  quantity: number;
-};
+import {
+  addToCart,
+  decreaseCart as decreaseCartService,
+  deleteCart as deleteCartService,
+  getCart,
+} from "../services/cartService";
 
 type CartItem = {
   id: number;
@@ -18,192 +17,91 @@ type CartItem = {
 };
 
 export default function AddtoCartPage() {
-  const dummyProducts: Product[] = [
-    {
-      id: 1,
-      name: "Ice Cream",
-      price: 100000,
-      quantity: 120,
-    },
-    {
-      id: 2,
-      name: "Liquid Soap",
-      price: 10000,
-      quantity: 10,
-    },
-  ];
+  const navigate = useNavigate();
 
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false)
-  
-  async function addtoCart(product: Product){
-    setIsLoading(true)
-    await fetch("http://localhost:9000/add/cart", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        userId: 1,
-        productId: product.id,
-        quantity: 1,
-      }),
-    });
+  const [isLoading, setIsLoading] = useState(false);
 
-    const response = await fetch("http://localhost:9000/get/cart");
-    const result = await response.json();
+  async function loadCart() {
+    const token = localStorage.getItem("token");
 
-    setCart(result.data)
-    setIsLoading(false)
+    if (!token) {
+      alert("Silakan login terlebih dahulu.");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const result = await getCart();
+      setCart(result.data || []);
+    } catch (error) {
+      console.error("GET CART ERROR:", error);
+      alert("Gagal mengambil cart");
+    }
   }
 
   useEffect(() => {
-    async function fetchCart() {
-      const response = await fetch("http://localhost:9000/get/cart");
-      const result = await response.json();
-
-      setCart(result.data);
-    }
-
-    fetchCart();
+    loadCart();
   }, []);
 
-  async function deleteCart(productId: number){
-    setIsLoading(true)
-    await fetch(`http://localhost:9000/cart/${productId}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        userId: 1,
-        productId: productId,
-      }),
-    });
-
-    const response = await fetch("http://localhost:9000/get/cart");
-    const result = await response.json();
-
-    setCart(result.data)
-    setIsLoading(false)
+  async function increaseCart(productId: number) {
+    try {
+      setIsLoading(true);
+      await addToCart(productId, 1);
+      await loadCart();
+    } catch (error) {
+      console.error("INCREASE CART ERROR:", error);
+      alert("Gagal menambah quantity");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  async function increaseCart(productId: number){
-    setIsLoading(true)
-    await fetch("http://localhost:9000/add/cart", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        userId: 1,
-        productId: productId,
-        quantity: 1,
-      }),
-    });
+  async function decreaseCart(item: CartItem) {
+    try {
+      setIsLoading(true);
 
-    const response = await fetch("http://localhost:9000/get/cart");
-    const result = await response.json();
+      if (item.quantity === 1) {
+        await deleteCartService(item.id);
+      } else {
+        await decreaseCartService(item.id);
+      }
 
-    setCart(result.data)
-    setIsLoading(false)
+      await loadCart();
+    } catch (error) {
+      console.error("DECREASE CART ERROR:", error);
+      alert("Gagal mengurangi cart");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  async function decreaseCart(id: number){
-    setIsLoading(true)
-    await fetch(`http://localhost:9000/cart/${id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        userId: 1,
-        productId: id,
-      }),
-    });
-
-    const response = await fetch("http://localhost:9000/get/cart");
-    const result = await response.json();
-
-    setCart(result.data)
-    setIsLoading(false)
+  async function checkout() {
+    try {
+      setIsLoading(true);
+      navigate("/checkout");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  async function checkout(){
-    setIsLoading(true)
-    await fetch("http://localhost:9000/api/checkout", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        userId:1
-      }),
-    })
-
-    const response = await fetch("http://localhost:9000/get/cart")
-    const result = await response.json()
-
-    setCart(result.data)
-    setIsLoading(false)
-  }
-
-  const navigate = useNavigate();
+  const grandTotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
 
   return (
-  <div className="min-h-screen bg-slate-100 p-8">
-    <div className="mx-auto max-w-5xl">
-      <button
-        onClick={() => navigate("/")}
-        className="cursor-pointer rounded-lg bg-slate-700 px-4 py-2 text-white transition hover:bg-slate-800"
-      >
-        Back to Home
-      </button>
-      
-      <h1 className="mb-6 text-4xl font-bold text-slate-800">
-        Grocery Store
-      </h1>
+    <div className="min-h-screen bg-slate-100 p-8">
+      <div className="mx-auto max-w-5xl">
+        <button
+          onClick={() => navigate("/")}
+          className="mb-6 cursor-pointer rounded-lg bg-slate-700 px-4 py-2 text-white transition hover:bg-slate-800"
+        >
+          Back to Home
+        </button>
 
-      {/* Products */}
-      <h2 className="mb-4 text-2xl font-semibold">Products</h2>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {dummyProducts.map((product) => (
-          <div
-            key={product.id}
-            className="rounded-xl bg-white p-5 shadow-md"
-          >
-            <h3 className="text-xl font-semibold">
-              {product.name}
-            </h3>
-
-            <p className="mt-2 text-lg text-green-600 font-bold">
-              Rp {product.price.toLocaleString("id-ID")}
-            </p>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Stock: {product.quantity}
-            </p>
-
-            <button
-              onClick={() => addtoCart(product)}
-              className="cursor-pointer mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
-            >
-              Add To Cart
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {/* Cart */}
-      <div className="mt-10">
-        <h2 className="mb-4 text-2xl font-semibold">Cart</h2>
+        <h1 className="mb-6 text-4xl font-bold text-slate-800">My Cart</h1>
 
         {cart.length === 0 ? (
           <div className="rounded-xl bg-white p-6 text-center shadow">
-            <p className="text-slate-500">
-              Your cart is empty
-            </p>
+            <p className="text-slate-500">Your cart is empty</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -224,12 +122,9 @@ export default function AddtoCartPage() {
 
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() =>
-                      item.quantity === 1
-                        ? deleteCart(item.id)
-                        : decreaseCart(item.id)
-                    }
-                    className="cursor-pointer flex h-9 w-9 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
+                    disabled={isLoading}
+                    onClick={() => decreaseCart(item)}
+                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 disabled:opacity-50"
                   >
                     -
                   </button>
@@ -239,10 +134,9 @@ export default function AddtoCartPage() {
                   </span>
 
                   <button
-                    onClick={() =>
-                      increaseCart(item.productId)
-                    }
-                    className="cursor-pointer flex h-9 w-9 items-center justify-center rounded-full bg-green-500 text-white hover:bg-green-600"
+                    disabled={isLoading}
+                    onClick={() => increaseCart(item.productId)}
+                    className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-green-500 text-white hover:bg-green-600 disabled:opacity-50"
                   >
                     +
                   </button>
@@ -251,26 +145,30 @@ export default function AddtoCartPage() {
             ))}
           </div>
         )}
-      </div>
 
-      {/* CHECKOUT SECTION (FIXED POSITION) */}
-      <div className="mt-6 flex justify-end">
-        <button
-          disabled={isLoading || cart.length === 0}
-          className="cursor-pointer rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
-          onClick={async () => {
-             await checkout();
-             navigate("/checkout");
-          }}
-        >
-          {isLoading
-            ? "Processing cart..."
-            : cart.length === 0
-            ? "Cart is empty"
-            : "Checkout"}
-        </button>
+        <div className="mt-6 rounded-xl bg-white p-6 shadow">
+          <div className="flex justify-between text-lg font-semibold">
+            <span>Grand Total</span>
+            <span className="text-green-600">
+              Rp {grandTotal.toLocaleString("id-ID")}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end">
+          <button
+            disabled={isLoading || cart.length === 0}
+            className="cursor-pointer rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={checkout}
+          >
+            {isLoading
+              ? "Processing..."
+              : cart.length === 0
+                ? "Cart is empty"
+                : "Checkout"}
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
 }
