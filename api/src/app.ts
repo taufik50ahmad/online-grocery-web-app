@@ -17,6 +17,7 @@ import ProductRoutes from "./route/productRoute.js";
 import stockRoutes from "./route/stockRoute.js";
 import discountRoutes from "./route/discountRoute.js";
 import reportRoutes from "./route/reportRoute.js";
+import orderRoute from "./route/getOrderRoute.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,7 +34,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/stores", storeRoutes);
 app.use("/api/products", adminProductRoutes);
-app.use("/api/products", productRoute);
+app.use("/api/products", ProductRoutes);
 app.use("/api/stocks", stockRoutes);
 app.use("/api/discounts", discountRoutes);
 app.use("/api/reports", reportRoutes);
@@ -48,6 +49,8 @@ app.use(decreaseCartRoute);
 app.use(checkoutRoute)
 
 app.use(getCheckoutRoute)
+
+app.use(orderRoute);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

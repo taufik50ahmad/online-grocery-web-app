@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import "./loading.css"
 
 type OrderItem = {
@@ -22,17 +22,21 @@ export default function CheckoutPage() {
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const {orderId} = useParams()
 
-  // Replace this with your authentication system
-  const userId = 1;
+  function getAuthHeaders() {
+    const token = localStorage.getItem("token");
+
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+  }
 
   useEffect(() => {
-    fetch("http://localhost:9000/checkout", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ userId }),
+    fetch(`http://localhost:9000/orders/${orderId}`, {
+      method: "GET",
+      headers: getAuthHeaders(),
     })
       .then(async (res) => {
         const data = await res.json();
@@ -49,7 +53,7 @@ export default function CheckoutPage() {
       .finally(() => {
         setLoading(false);
       });
-  }, []);
+  }, [orderId]);
 
   if (loading) {
   return (
@@ -162,7 +166,9 @@ export default function CheckoutPage() {
         </div>
 
         <div className="mt-6 flex justify-end">
-          <button className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700">
+          <button
+            onClick={() => navigate(`/placed-order/${order.id}`)}
+            className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700">
             Place Order
           </button>
         </div>

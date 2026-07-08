@@ -6,13 +6,7 @@ export default async function checkoutController(
   res: Response
 ) {
   try {
-    const userId = Number(req.body.userId);
-
-    if (!userId) {
-      return res.status(400).json({
-        message: "User ID is required.",
-      });
-    }
+    const userId = (req as any).user.id;
 
     const checkout = await checkoutService(userId);
 

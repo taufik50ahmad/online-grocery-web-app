@@ -1,10 +1,7 @@
 import prisma from "../lib/prisma.js";
 
-type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
-
 export default async function checkoutService(userId: number) {
-  return await prisma.$transaction(async (tx) => {
-    // Get pending order
+  return prisma.$transaction(async (tx) => {
     const pendingOrder = await tx.order.findFirst({
       where: {
         userId,
@@ -15,7 +12,6 @@ export default async function checkoutService(userId: number) {
       },
     });
 
-    // Get cart items
     const cartItems = await tx.cartItem.findMany({
       where: {
         userId,
@@ -28,18 +24,15 @@ export default async function checkoutService(userId: number) {
       },
     });
 
-    // Prevent checkout with empty cart
     if (cartItems.length === 0) {
       throw new Error("Cart is empty.");
     }
 
-    // Calculate total quantity
     const totalQuantity = cartItems.reduce(
       (sum, item) => sum + item.quantity,
       0
     );
 
-    // Validate stock
     const products = await tx.product.findMany({
       where: {
         id: {
@@ -52,7 +45,7 @@ export default async function checkoutService(userId: number) {
       },
     });
 
-    const productMap = new Map(products.map((p) => [p.id, p]));
+    const productMap = new Map(products.map((product) => [product.id, product]));
 
     for (const item of cartItems) {
       const product = productMap.get(item.productId);
@@ -68,7 +61,7 @@ export default async function checkoutService(userId: number) {
       }
     }
 
-    async function createOrder(tx: Tx) {
+    async function createOrder() {
       const order = await tx.order.create({
         data: {
           userId,
@@ -89,32 +82,24 @@ export default async function checkoutService(userId: number) {
       return order;
     }
 
-    // No pending order, create one
     if (!pendingOrder) {
-      return await createOrder(tx);
+      return createOrder();
     }
 
-    // Check whether cart has changed
-    let changed = false;
+    let changed = pendingOrder.orderItems.length !== cartItems.length;
 
-    if (pendingOrder.orderItems.length !== cartItems.length) {
-      changed = true;
-    } else {
+    if (!changed) {
       const cartMap = new Map(
         cartItems.map((item) => [item.productId, item])
       );
 
-      for (const pendingItem of pendingOrder.orderItems) {
-        const cartItem = cartMap.get(pendingItem.productId);
-
-        if (!cartItem) {
-          changed = true;
-          break;
-        }
+      for (const orderItem of pendingOrder.orderItems) {
+        const cartItem = cartMap.get(orderItem.productId);
 
         if (
-          cartItem.quantity !== pendingItem.quantity ||
-          cartItem.totalPrice !== pendingItem.totalPrice
+          !cartItem ||
+          cartItem.quantity !== orderItem.quantity ||
+          cartItem.totalPrice !== orderItem.totalPrice
         ) {
           changed = true;
           break;
@@ -122,12 +107,10 @@ export default async function checkoutService(userId: number) {
       }
     }
 
-    // Nothing changed
     if (!changed) {
       return pendingOrder;
     }
 
-    // Cancel previous pending order
     await tx.order.update({
       where: {
         id: pendingOrder.id,
@@ -137,7 +120,6 @@ export default async function checkoutService(userId: number) {
       },
     });
 
-    // Create replacement order
-    return await createOrder(tx);
+    return createOrder();
   });
 }

@@ -20,6 +20,7 @@ import VerifyEmailPage from "@/pages/VerifyEmailPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import CartPage from "@/pages/addtoCart";
 import Checkout from "@/pages/checkoutPage";
+import PlacedOrderPage from "@/pages/placeOrder";
 
 export default function App() {
   return (
@@ -31,7 +32,8 @@ export default function App() {
         <Route path="/store-management" element={<StoreManagementPage />} />
 <Route path="/store/:storeId" element={<StoreFrontPage />} />
         <Route path="/cart" element={<CartPage />} />
-        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/checkout/:orderId" element={<Checkout />} />
+        <Route path="/placed-order/:orderId" element={<PlacedOrderPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/confirm-reset-password" element={<ResetPasswordPage />} />
         <Route path="/products" element={<ProductCatalog />} />

@@ -26,6 +26,9 @@ export async function requireAuth(
   next: NextFunction,
 ) {
   try {
+    console.log("=== REQUIRE AUTH CALLED ===");
+    console.log(req.headers.authorization);
+
     const token = getTokenFromHeader(req);
 
     if (!token) {

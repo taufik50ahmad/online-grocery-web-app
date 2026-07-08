@@ -3,7 +3,8 @@ import type {Request, Response} from "express";
 
 export default async function getCartController(req: Request, res: Response){
     try {
-        const cart = await getCartService(1);
+        const userId = (req as any).user.id;
+        const cart = await getCartService(userId);
 
         return res.status(200).json({
             status: "success",
