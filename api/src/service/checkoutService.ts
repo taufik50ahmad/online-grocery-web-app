@@ -4,18 +4,16 @@ type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 export default async function checkoutService(userId: number) {
   return await prisma.$transaction(async (tx) => {
-    // Get pending order
     const pendingOrder = await tx.order.findFirst({
       where: {
         userId,
-        orderStatus: "PENDING",
+        order_status: "PENDING",
       },
       include: {
-        orderItems: true,
+        order_items: true,
       },
     });
 
-    // Get cart items
     const cartItems = await tx.cartItem.findMany({
       where: {
         userId,
@@ -28,18 +26,15 @@ export default async function checkoutService(userId: number) {
       },
     });
 
-    // Prevent checkout with empty cart
     if (cartItems.length === 0) {
       throw new Error("Cart is empty.");
     }
 
-    // Calculate total quantity
     const totalQuantity = cartItems.reduce(
       (sum, item) => sum + item.quantity,
-      0
+      0,
     );
 
-    // Validate stock
     const products = await tx.product.findMany({
       where: {
         id: {
@@ -52,7 +47,7 @@ export default async function checkoutService(userId: number) {
       },
     });
 
-    const productMap = new Map(products.map((p) => [p.id, p]));
+    const productMap = new Map(products.map((product) => [product.id, product]));
 
     for (const item of cartItems) {
       const product = productMap.get(item.productId);
@@ -63,7 +58,7 @@ export default async function checkoutService(userId: number) {
 
       if (product.stock < item.quantity) {
         throw new Error(
-          `${item.productName} only has ${product.stock} item(s) left in stock.`
+          `${item.productName} only has ${product.stock} item(s) left in stock.`,
         );
       }
     }
@@ -72,40 +67,44 @@ export default async function checkoutService(userId: number) {
       const order = await tx.order.create({
         data: {
           userId,
-          totalQuantity,
+          total_quantity: totalQuantity,
         },
       });
 
-      await tx.orderItem.createMany({
+      await tx.order_items.createMany({
         data: cartItems.map((item) => ({
-          orderId: order.id,
-          productId: item.productId,
-          productName: item.productName,
+          order_id: order.id,
+          product_id: item.productId,
+          product_name: item.productName,
           quantity: item.quantity,
-          totalPrice: item.totalPrice,
+          total_price: item.totalPrice,
+          updated_at: new Date(),
         })),
       });
 
-      return order;
+      return await tx.order.findUnique({
+        where: {
+          id: order.id,
+        },
+        include: {
+          order_items: true,
+        },
+      });
     }
 
-    // No pending order, create one
     if (!pendingOrder) {
       return await createOrder(tx);
     }
 
-    // Check whether cart has changed
     let changed = false;
 
-    if (pendingOrder.orderItems.length !== cartItems.length) {
+    if (pendingOrder.order_items.length !== cartItems.length) {
       changed = true;
     } else {
-      const cartMap = new Map(
-        cartItems.map((item) => [item.productId, item])
-      );
+      const cartMap = new Map(cartItems.map((item) => [item.productId, item]));
 
-      for (const pendingItem of pendingOrder.orderItems) {
-        const cartItem = cartMap.get(pendingItem.productId);
+      for (const pendingItem of pendingOrder.order_items) {
+        const cartItem = cartMap.get(pendingItem.product_id);
 
         if (!cartItem) {
           changed = true;
@@ -114,7 +113,7 @@ export default async function checkoutService(userId: number) {
 
         if (
           cartItem.quantity !== pendingItem.quantity ||
-          cartItem.totalPrice !== pendingItem.totalPrice
+          cartItem.totalPrice !== pendingItem.total_price
         ) {
           changed = true;
           break;
@@ -122,22 +121,19 @@ export default async function checkoutService(userId: number) {
       }
     }
 
-    // Nothing changed
     if (!changed) {
       return pendingOrder;
     }
 
-    // Cancel previous pending order
     await tx.order.update({
       where: {
         id: pendingOrder.id,
       },
       data: {
-        orderStatus: "CANCELLED",
+        order_status: "CANCELLED",
       },
     });
 
-    // Create replacement order
     return await createOrder(tx);
   });
 }

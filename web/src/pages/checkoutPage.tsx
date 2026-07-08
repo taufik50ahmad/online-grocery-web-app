@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./loading.css"
+import api from "../services/api";
 
 type OrderItem = {
   productId: number;
@@ -23,33 +24,46 @@ export default function CheckoutPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Replace this with your authentication system
-  const userId = 1;
-
   useEffect(() => {
-    fetch("http://localhost:9000/checkout", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ userId }),
-    })
-      .then(async (res) => {
-        const data = await res.json();
+  const token = localStorage.getItem("token");
 
-        if (!res.ok) {
-          throw new Error(data.message);
-        }
+  if (!token) {
+    alert("Silakan login terlebih dahulu.");
+    navigate("/login");
+    return;
+  }
 
-        setOrder(data.data);
-      })
-      .catch((err) => {
-        alert(err.message);
-      })
-      .finally(() => {
-        setLoading(false);
+  api
+    .post("/checkout")
+    .then((res) => {
+      const checkoutData = res.data.data;
+
+      setOrder({
+        id: checkoutData.id,
+        userId: checkoutData.userId,
+        totalQuantity:
+          checkoutData.totalQuantity || checkoutData.total_quantity || 0,
+        orderStatus:
+          checkoutData.orderStatus || checkoutData.order_status || "PENDING",
+        orderItems: (
+          checkoutData.orderItems ||
+          checkoutData.order_items ||
+          []
+        ).map((item: any) => ({
+          productId: item.productId || item.product_id,
+          productName: item.productName || item.product_name,
+          quantity: item.quantity,
+          totalPrice: item.totalPrice || item.total_price,
+        })),
       });
-  }, []);
+    })
+    .catch((err) => {
+      alert(err.response?.data?.message || "Gagal checkout");
+    })
+    .finally(() => {
+      setLoading(false);
+    });
+}, [navigate]);
 
   if (loading) {
   return (
