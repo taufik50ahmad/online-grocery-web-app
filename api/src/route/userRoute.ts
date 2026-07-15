@@ -13,9 +13,9 @@ const router = Router();
 router.use(requireAuth, requireRole(["SUPER_ADMIN"]));
 
 router.get("/", getAllUsers);
-router.get("/admins", getStoreAdmins);
-router.post("/admins", createStoreAdmin);
-router.put("/admins/:id", updateStoreAdmin);
-router.delete("/admins/:id", deleteStoreAdmin);
+router.get("/store-admins", getStoreAdmins);
+router.post("/store-admins", createStoreAdmin);
+router.put("/store-admins/:id", updateStoreAdmin);
+router.delete("/store-admins/:id", deleteStoreAdmin);
 
 export default router;

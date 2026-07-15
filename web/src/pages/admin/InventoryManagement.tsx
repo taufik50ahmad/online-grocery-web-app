@@ -1,5 +1,7 @@
+// web/src/pages/admin/InventoryManagement.tsx
 import { useState, useEffect, useCallback } from "react";
 import { Search, Package, History, Plus } from "lucide-react";
+import toast from "react-hot-toast";
 import {
   getStocks,
   getStockJournals,
@@ -9,17 +11,44 @@ import {
   type StockAdjustmentPayload,
 } from "../../services/stockService";
 import { getProducts } from "../../services/productService";
+import { getStores } from "../../services/storeService";
 import type { Product } from "../../types";
+
+interface Store {
+  id: number;
+  name: string;
+}
+
+function getAdminInfo(): { role: string; id?: number; storeId?: number } {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return { role: "" };
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return {
+      role: payload.role || "",
+      id: payload.id,
+      storeId: payload.storeId,
+    };
+  } catch {
+    return { role: "" };
+  }
+}
 
 export default function InventoryManagement() {
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [journals, setJournals] = useState<StockJournal[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"stocks" | "journals">("stocks");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState("");
+  const [selectedStoreId, setSelectedStoreId] = useState<number>(1);
+
+  const adminInfo = getAdminInfo();
+  const role = adminInfo.role;
+  const isSuperAdmin = role === "SUPER_ADMIN";
 
   const [adjustForm, setAdjustForm] = useState<StockAdjustmentPayload>({
     productId: 0,
@@ -32,39 +61,65 @@ export default function InventoryManagement() {
   const fetchStocks = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await getStocks(1, 50, undefined, search);
+      const res = await getStocks(1, 50, selectedStoreId, search);
       setStocks(res.stocks ?? []);
-    } catch {
-      setError("Failed to fetch stocks");
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to fetch stocks";
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
-  }, [search]);
+  }, [search, selectedStoreId]);
 
   const fetchJournals = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await getStockJournals(1, 50);
+      const res = await getStockJournals(1, 50, selectedStoreId);
       setJournals(res.journals ?? []);
-    } catch {
-      setError("Failed to fetch journals");
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to fetch journals";
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [selectedStoreId]);
 
   const fetchProducts = useCallback(async () => {
     try {
       const res = await getProducts(1, 100);
-      setProducts(res.data ?? []);
-    } catch {
-      // silent
+      setProducts(res.products ?? []);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to fetch products";
+      toast.error(msg);
     }
   }, []);
 
+  const fetchStores = useCallback(async () => {
+    try {
+      const data = await getStores();
+      const storeList = data.stores ?? data ?? [];
+      setStores(storeList);
+      if (storeList.length > 0) {
+        // For STORE_ADMIN, prefer their own store; otherwise first store
+        const initialStoreId = !isSuperAdmin && adminInfo.storeId
+          ? adminInfo.storeId
+          : storeList[0].id;
+        setSelectedStoreId(initialStoreId);
+      }
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to fetch stores";
+      toast.error(msg);
+    }
+  }, [adminInfo.storeId, isSuperAdmin]);
+
   useEffect(() => {
     fetchProducts();
-  }, [fetchProducts]);
+    fetchStores();
+  }, [fetchProducts, fetchStores]);
 
   useEffect(() => {
     if (activeTab === "stocks") fetchStocks();
@@ -74,21 +129,32 @@ export default function InventoryManagement() {
   const handleAdjust = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await adjustStock(adjustForm);
+      await adjustStock({
+        ...adjustForm,
+        storeId: selectedStoreId,
+      });
+      toast.success("Stock adjusted successfully");
       setIsModalOpen(false);
       fetchStocks();
-      setAdjustForm({ productId: 0, storeId: 1, type: "IN", quantity: 0, note: "" });
-    } catch {
-      setError("Failed to adjust stock");
+      setAdjustForm({ productId: 0, storeId: selectedStoreId, type: "IN", quantity: 0, note: "" });
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to adjust stock";
+      setError(msg);
+      toast.error(msg);
     }
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-800">Inventory Management</h1>
-          <p className="text-sm text-gray-400">Track and manage stock levels</p>
+          <h1 className="text-xl font-semibold text-gray-800">
+            Inventory Management
+          </h1>
+          <p className="text-sm text-gray-400">
+            Track and manage stock levels
+          </p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
@@ -100,7 +166,31 @@ export default function InventoryManagement() {
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lg">{error}</div>
+        <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      {/* Store selector for super admin */}
+      {isSuperAdmin && (
+        <div className="flex items-center gap-3">
+          <label className="text-sm font-medium text-gray-700">Store:</label>
+          <select
+            value={selectedStoreId}
+            onChange={(e) => setSelectedStoreId(Number(e.target.value))}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {stores.length === 0 ? (
+              <option value={1}>Store #1</option>
+            ) : (
+              stores.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
       )}
 
       <div className="flex gap-2 border-b border-gray-200">
@@ -137,7 +227,10 @@ export default function InventoryManagement() {
             }}
             className="relative"
           >
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
             <input
               type="text"
               value={search}
@@ -251,8 +344,12 @@ export default function InventoryManagement() {
                           {journal.type}
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-gray-700">{journal.quantity}</td>
-                      <td className="px-5 py-3 text-gray-400">{journal.note ?? "-"}</td>
+                      <td className="px-5 py-3 text-gray-700">
+                        {journal.quantity}
+                      </td>
+                      <td className="px-5 py-3 text-gray-400">
+                        {journal.note ?? "-"}
+                      </td>
                       <td className="px-5 py-3 text-gray-400 text-xs">
                         {new Date(journal.createdAt).toLocaleDateString("id-ID")}
                       </td>
@@ -279,12 +376,17 @@ export default function InventoryManagement() {
             </div>
             <form onSubmit={handleAdjust} className="px-5 py-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Product
+                </label>
                 <select
                   required
                   value={adjustForm.productId || ""}
                   onChange={(e) =>
-                    setAdjustForm({ ...adjustForm, productId: Number(e.target.value) })
+                    setAdjustForm({
+                      ...adjustForm,
+                      productId: Number(e.target.value),
+                    })
                   }
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
@@ -297,7 +399,9 @@ export default function InventoryManagement() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Type
+                </label>
                 <select
                   value={adjustForm.type}
                   onChange={(e) =>
@@ -314,24 +418,33 @@ export default function InventoryManagement() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Quantity
+                </label>
                 <input
                   type="number"
                   required
                   min={1}
                   value={adjustForm.quantity || ""}
                   onChange={(e) =>
-                    setAdjustForm({ ...adjustForm, quantity: Number(e.target.value) })
+                    setAdjustForm({
+                      ...adjustForm,
+                      quantity: Number(e.target.value),
+                    })
                   }
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Note
+                </label>
                 <input
                   type="text"
                   value={adjustForm.note}
-                  onChange={(e) => setAdjustForm({ ...adjustForm, note: e.target.value })}
+                  onChange={(e) =>
+                    setAdjustForm({ ...adjustForm, note: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Optional note"
                 />

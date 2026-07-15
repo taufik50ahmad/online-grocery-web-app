@@ -319,6 +319,41 @@ export async function updateProfile(
   return user;
 }
 
+export async function changePassword(
+  userId: number,
+  currentPassword: string,
+  newPassword: string,
+) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new Error("User tidak ditemukan");
+  }
+
+  const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+
+  if (!isPasswordValid) {
+    throw new Error("Password saat ini salah");
+  }
+
+  if (newPassword.length < 8) {
+    throw new Error("Password baru minimal 8 karakter");
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword },
+  });
+
+  return {
+    message: "Password berhasil diubah",
+  };
+}
+
 export function verifyJwtToken(token: string) {
   return jwt.verify(token, process.env.JWT_SECRET as string) as {
     id: number;

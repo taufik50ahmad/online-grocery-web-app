@@ -63,6 +63,13 @@ export async function getProductById(id: number) {
 }
 
 export async function createProduct(data: ProductInput) {
+  const existing = await prisma.product.findFirst({
+    where: { name: { equals: data.name, mode: "insensitive" } },
+  });
+  if (existing) {
+    throw new Error("Product with this name already exists");
+  }
+
   const slug = generateSlug(data.name);
   return prisma.product.create({
     data: {
@@ -87,6 +94,18 @@ export async function createProduct(data: ProductInput) {
 export async function updateProduct(id: number, data: Partial<ProductInput>) {
   const product = await prisma.product.findUnique({ where: { id } });
   if (!product) throw new Error("Product not found");
+
+  if (data.name) {
+    const conflict = await prisma.product.findFirst({
+      where: {
+        name: { equals: data.name, mode: "insensitive" },
+        NOT: { id },
+      },
+    });
+    if (conflict) {
+      throw new Error("Product with this name already exists");
+    }
+  }
 
   const { images, ...rest } = data;
 

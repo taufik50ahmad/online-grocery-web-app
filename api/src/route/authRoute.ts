@@ -8,6 +8,12 @@ import {
   resendVerification,
   updateProfile,
   verifyEmail,
+<<<<<<< Updated upstream
+=======
+  resendVerificationEmail,
+  googleLogin,
+  changePassword,
+>>>>>>> Stashed changes
 } from "../controller/authController.js";
 
 const router = Router();
@@ -21,6 +27,7 @@ router.post("/login", login);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", confirmResetPassword);
 
-router.put("/profile", updateProfile);
+router.put("/profile", requireAuth, updateProfile);
+router.put("/change-password", requireAuth, changePassword);
 
 export default router;

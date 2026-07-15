@@ -12,6 +12,17 @@ import {
 } from "../../services/categoryService";
 import type { Category } from "../../types";
 
+function getAdminRole(): string {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return "";
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.role || "";
+  } catch {
+    return "";
+  }
+}
+
 export default function CategoryManagement() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
@@ -25,7 +36,7 @@ export default function CategoryManagement() {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const role = localStorage.getItem("adminRole");
+  const role = getAdminRole();
   const isSuperAdmin = role === "SUPER_ADMIN";
 
   const fetchCategories = useCallback(async () => {
@@ -83,7 +94,7 @@ export default function CategoryManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -17,24 +17,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-function getProductImage(productName: string) {
-  const name = productName.toLowerCase();
-
-  if (name.includes("liquid") || name.includes("soap")) {
-    return "/products/liquid-soap.jpg";
-  }
-
-  if (name.includes("ice")) {
-    return "/products/ice-cream.jpg";
-  }
-
-  if (name.includes("cangkir")) {
-    return "/products/cangkir-manis.jpg";
-  }
-
-  return "/products/default-product.jpg";
-}
-
 type Product = {
   id: number;
   name: string;

@@ -9,6 +9,12 @@ import {
   updateProfile as updateUserProfileService,
   verifyEmailAndSetPassword,
   verifyJwtToken,
+<<<<<<< Updated upstream
+=======
+  resendVerificationEmail as resendVerificationEmailService,
+  loginWithGoogle as loginWithGoogleService,
+  changePassword as changePasswordService,
+>>>>>>> Stashed changes
 } from "../service/authService.js";
 import { z } from "zod";
 
@@ -58,6 +64,26 @@ const resetPasswordSchema = z.object({
     .min(8, "Password must be at least 8 characters long"),
 });
 
+<<<<<<< Updated upstream
+=======
+const resendVerificationSchema = z.object({
+  email: z.string().min(1, "Email is required").email("Invalid email address"),
+});
+
+const googleLoginSchema = z.object({
+  idToken: z.string().min(1, "Google token is required"),
+});
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Password saat ini wajib diisi"),
+  newPassword: z
+    .string()
+    .min(8, "Password baru minimal 8 karakter"),
+});
+
+//----------------------------------------//
+
+>>>>>>> Stashed changes
 function getTokenFromHeader(req: Request) {
   const authorization = req.headers.authorization;
 
@@ -271,3 +297,74 @@ export async function updateProfile(req: Request, res: Response) {
     });
   }
 }
+<<<<<<< Updated upstream
+=======
+
+type AuthenticatedRequest = Request & {
+  user?: {
+    id: number;
+    role: string;
+    isVerified: boolean;
+  };
+};
+
+export async function registerAsStoreAdmin(
+  req: AuthenticatedRequest,
+  res: Response
+) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        message: "Silakan login terlebih dahulu",
+      });
+    }
+
+    const result = await registerStoreAdmin(req.user.id);
+
+    return res.json(result);
+  } catch (error) {
+    return res.status(400).json({
+      message:
+        error instanceof Error
+          ? error.message
+          : "Gagal register sebagai Store Admin",
+    });
+  }
+}
+
+export async function changePassword(
+  req: AuthenticatedRequest,
+  res: Response,
+) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        message: "Silakan login terlebih dahulu",
+      });
+    }
+
+    const validation = changePasswordSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        message: validation.error.issues[0]?.message || "Invalid request",
+      });
+    }
+
+    const { currentPassword, newPassword } = validation.data;
+
+    const result = await changePasswordService(
+      req.user.id,
+      currentPassword,
+      newPassword,
+    );
+
+    return res.json(result);
+  } catch (error) {
+    return res.status(400).json({
+      message:
+        error instanceof Error ? error.message : "Gagal mengubah password",
+    });
+  }
+}
+>>>>>>> Stashed changes

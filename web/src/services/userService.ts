@@ -1,23 +1,12 @@
-import axios from "axios";
-
-const BASE_URL = import.meta.env.VITE_API_URL;
-
-function getHeaders() {
-  const token = localStorage.getItem("token");
-  return { Authorization: `Bearer ${token}` };
-}
+import api from "./api";
 
 export async function getAllUsers() {
-  const res = await axios.get(`${BASE_URL}/api/users`, {
-    headers: getHeaders(),
-  });
+  const res = await api.get("/users");
   return res.data.data;
 }
 
 export async function getAllStoreAdmins() {
-  const res = await axios.get(`${BASE_URL}/api/users/store-admins`, {
-    headers: getHeaders(),
-  });
+  const res = await api.get("/users/store-admins");
   return res.data.data;
 }
 
@@ -26,35 +15,37 @@ export async function createStoreAdmin(payload: {
   email: string;
   password: string;
 }) {
-  const res = await axios.post(`${BASE_URL}/api/users/store-admins`, payload, {
-    headers: getHeaders(),
-  });
+  const res = await api.post("/users/store-admins", payload);
   return res.data.data;
 }
 
 export async function updateStoreAdmin(
-  id: string,
+  id: number,
   payload: { name?: string; email?: string; password?: string },
 ) {
-  const res = await axios.put(
-    `${BASE_URL}/api/users/store-admins/${id}`,
-    payload,
-    { headers: getHeaders() },
-  );
+  const res = await api.put(`/users/store-admins/${id}`, payload);
   return res.data.data;
 }
 
-export async function deleteStoreAdmin(id: string) {
-  const res = await axios.delete(`${BASE_URL}/api/users/store-admins/${id}`, {
-    headers: getHeaders(),
-  });
+export async function deleteStoreAdmin(id: number) {
+  const res = await api.delete(`/users/store-admins/${id}`);
+  return res.data;
+}
+
+export async function changePassword(payload: {
+  currentPassword: string;
+  newPassword: string;
+}) {
+  const res = await api.put("/auth/change-password", payload);
   return res.data;
 }
 
 export const userService = {
   getAllUsers,
+  getStoreAdmins: getAllStoreAdmins,
   getAllStoreAdmins,
   createStoreAdmin,
   updateStoreAdmin,
   deleteStoreAdmin,
+  changePassword,
 };

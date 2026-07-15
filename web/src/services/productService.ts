@@ -1,5 +1,5 @@
 import api from "./api";
-import type { Product, ApiResponse, PaginatedResponse } from "../types";
+import type { Product, ApiResponse } from "../types";
 
 export interface ProductPayload {
   name: string;
@@ -11,12 +11,20 @@ export interface ProductPayload {
   images?: { imageUrl: string; isPrimary?: boolean; order?: number }[];
 }
 
+export interface ProductListResponse {
+  products: Product[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const getProducts = async (
   page = 1,
   limit = 10,
   search = "",
   categoryId?: number,
-): Promise<PaginatedResponse<Product>> => {
+): Promise<ProductListResponse> => {
   const params = new URLSearchParams({
     page: String(page),
     limit: String(limit),

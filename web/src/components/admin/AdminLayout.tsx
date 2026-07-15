@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -9,7 +10,10 @@ import {
   Boxes,
   Percent,
   BarChart3,
+  KeyRound,
+  UserPlus,
 } from "lucide-react";
+import ChangePasswordModal from "./ChangePasswordModal";
 
 const navItems = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -21,8 +25,27 @@ const navItems = [
   { to: "/admin/reports", label: "Reports", icon: BarChart3, end: false },
 ];
 
+function getAdminInfo(): { role: string; name?: string; email?: string } {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return { role: "" };
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return {
+      role: payload.role || "",
+      name: payload.name,
+      email: payload.email,
+    };
+  } catch {
+    return { role: "" };
+  }
+}
+
 export default function AdminLayout() {
   const navigate = useNavigate();
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+
+  const adminInfo = getAdminInfo();
+  const isSuperAdmin = adminInfo.role === "SUPER_ADMIN";
 
   function handleLogout() {
     localStorage.removeItem("token");
@@ -58,10 +81,40 @@ export default function AdminLayout() {
               {label}
             </NavLink>
           ))}
+
+          {/* Quick Action: Add Admin (Super Admin only) */}
+          {isSuperAdmin && (
+            <button
+              onClick={() => navigate("/admin/store-admins")}
+              className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-green-600 hover:bg-green-50 transition-colors"
+            >
+              <UserPlus size={18} />
+              Add Admin
+            </button>
+          )}
         </nav>
 
-        {/* Logout */}
-        <div className="px-3 py-4 border-t border-gray-100">
+        {/* User Info & Actions */}
+        <div className="px-3 py-4 border-t border-gray-100 space-y-1">
+          {/* User Info */}
+          <div className="px-3 py-2 mb-2">
+            <p className="text-xs text-gray-400">Login sebagai</p>
+            <p className="text-sm font-medium text-gray-700 truncate">
+              {adminInfo.name || adminInfo.email || "Admin"}
+            </p>
+            <p className="text-xs text-gray-400">{adminInfo.role}</p>
+          </div>
+
+          {/* Change Password */}
+          <button
+            onClick={() => setIsPasswordModalOpen(true)}
+            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            <KeyRound size={18} />
+            Ubah Password
+          </button>
+
+          {/* Logout */}
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
@@ -76,6 +129,12 @@ export default function AdminLayout() {
       <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+      />
     </div>
   );
 }

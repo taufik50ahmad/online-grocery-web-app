@@ -1,5 +1,7 @@
+// web/src/pages/admin/ProductManagement.tsx
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Search } from "lucide-react";
+import toast from "react-hot-toast";
 import ProductTable from "../../components/admin/ProductTable";
 import ProductModal from "../../components/admin/ProductModal";
 import DeleteConfirmModal from "../../components/admin/DeleteConfirmModal";
@@ -12,6 +14,17 @@ import {
 } from "../../services/productService";
 import { getAllCategories } from "../../services/categoryService";
 import type { Product, Category } from "../../types";
+
+function getAdminRole(): string {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return "";
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.role || "";
+  } catch {
+    return "";
+  }
+}
 
 export default function ProductManagement() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -26,16 +39,17 @@ export default function ProductManagement() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState("");
 
-  const isSuperAdmin = true;
+  const role = getAdminRole();
+  const isSuperAdmin = role === "SUPER_ADMIN";
 
   const fetchProducts = useCallback(async () => {
     setIsLoading(true);
     setError("");
     try {
       const res = await getProducts(page, 10, search);
-      setProducts(res.data ?? []);
-      setTotalPages(res.meta?.totalPages ?? 1);
-    } catch (err) {
+      setProducts(res.products ?? []);
+      setTotalPages(res.totalPages ?? 1);
+    } catch {
       setError("Failed to fetch products");
     } finally {
       setIsLoading(false);
@@ -79,13 +93,18 @@ export default function ProductManagement() {
     try {
       if (id) {
         await updateProduct(id, payload);
+        toast.success("Product updated successfully");
       } else {
         await createProduct(payload);
+        toast.success("Product created successfully");
       }
       setIsModalOpen(false);
       fetchProducts();
-    } catch (err) {
-      setError(id ? "Failed to update product" : "Failed to create product");
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to save product";
+      setError(msg);
+      toast.error(msg);
     }
   };
 
@@ -94,20 +113,25 @@ export default function ProductManagement() {
     setIsDeleting(true);
     try {
       await deleteProduct(deleteTarget.id);
+      toast.success("Product deleted successfully");
       setDeleteTarget(null);
       fetchProducts();
-    } catch {
-      setError("Failed to delete product");
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to delete product";
+      toast.error(msg);
     } finally {
       setIsDeleting(false);
     }
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-800">Product Management</h1>
+          <h1 className="text-xl font-semibold text-gray-800">
+            Product Management
+          </h1>
           <p className="text-sm text-gray-400">Manage your product catalog</p>
         </div>
         {isSuperAdmin && (

@@ -13,7 +13,7 @@ export interface Store {
 }
 
 export interface Category {
-  id: string;
+  id: number;
   name: string;
   createdAt: string;
   updatedAt: string;

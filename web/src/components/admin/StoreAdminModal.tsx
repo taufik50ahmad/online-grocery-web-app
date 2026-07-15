@@ -1,75 +1,72 @@
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-
-interface StoreAdmin {
-  id: string;
-  name: string;
-  email: string;
-  createdAt: string;
-}
+import type { StoreAdmin } from "../../types/user";
 
 interface Props {
-  mode: "create" | "edit";
-  initialData: StoreAdmin | null;
+  isOpen: boolean;
+  mode?: "create" | "edit";
+  editData: StoreAdmin | null;
   onSubmit: (data: { name: string; email: string; password?: string }) => void;
   onClose: () => void;
-  submitting: boolean;
+  isLoading: boolean;
 }
 
-const createSchema = yup.object({
-  name: yup.string().min(2, "Minimal 2 karakter").required("Nama wajib diisi"),
-  email: yup.string().email("Email tidak valid").required("Email wajib diisi"),
-  password: yup
-    .string()
-    .min(6, "Minimal 6 karakter")
-    .required("Password wajib diisi"),
-});
-
-const editSchema = yup.object({
-  name: yup.string().min(2, "Minimal 2 karakter").required("Nama wajib diisi"),
-  email: yup.string().email("Email tidak valid").required("Email wajib diisi"),
-  password: yup
-    .string()
-    .test(
-      "optional-min",
-      "Minimal 6 karakter",
-      (val) => !val || val.length >= 6,
-    ),
-});
-
-type FormData = { name: string; email: string; password?: string };
-
 export default function StoreAdminModal({
+  isOpen,
   mode,
-  initialData,
+  editData,
   onSubmit,
   onClose,
-  submitting,
+  isLoading,
 }: Props) {
-  const schema = mode === "create" ? createSchema : editSchema;
+  const resolvedMode = mode ?? (editData ? "edit" : "create");
+  const [name, setName] = useState(editData?.name ?? "");
+  const [email, setEmail] = useState(editData?.email ?? "");
+  const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormData>({
-    resolver: yupResolver(schema),
-    defaultValues: {
-      name: initialData?.name ?? "",
-      email: initialData?.email ?? "",
-      password: "",
-    },
-  });
+  // Sync form state when modal opens or editData changes
+  useEffect(() => {
+    if (isOpen) {
+      setName(editData?.name ?? "");
+      setEmail(editData?.email ?? "");
+      setPassword("");
+      setErrors({});
+    }
+  }, [isOpen, editData]);
+
+  if (!isOpen) return null;
+
+  const validate = () => {
+    const errs: Record<string, string> = {};
+    if (!name || name.length < 2) errs.name = "Nama minimal 2 karakter";
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      errs.email = "Email tidak valid";
+    if (resolvedMode === "create" && (!password || password.length < 6))
+      errs.password = "Password minimal 6 karakter";
+    if (resolvedMode === "edit" && password && password.length < 6)
+      errs.password = "Password minimal 6 karakter";
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+    const data: { name: string; email: string; password?: string } = {
+      name,
+      email,
+    };
+    if (password) data.password = password;
+    onSubmit(data);
+  };
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-6">
-        {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <h2 className="font-bold text-gray-800">
-            {mode === "create" ? "Tambah Store Admin" : "Edit Store Admin"}
+            {resolvedMode === "create" ? "Tambah Store Admin" : "Edit Store Admin"}
           </h2>
           <button
             onClick={onClose}
@@ -79,19 +76,19 @@ export default function StoreAdminModal({
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Nama
             </label>
             <input
-              {...register("name")}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="John Doe"
             />
             {errors.name && (
-              <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>
+              <p className="text-xs text-red-500 mt-1">{errors.name}</p>
             )}
           </div>
 
@@ -100,40 +97,38 @@ export default function StoreAdminModal({
               Email
             </label>
             <input
-              {...register("email")}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={resolvedMode === "edit"}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
               placeholder="admin@toko.com"
             />
             {errors.email && (
-              <p className="text-xs text-red-500 mt-1">
-                {errors.email.message}
-              </p>
+              <p className="text-xs text-red-500 mt-1">{errors.email}</p>
             )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Password{" "}
-              {mode === "edit" && (
+              {resolvedMode === "edit" && (
                 <span className="text-gray-400 font-normal">
                   (kosongkan jika tidak diubah)
                 </span>
               )}
             </label>
             <input
-              {...register("password")}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               type="password"
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="••••••••"
             />
             {errors.password && (
-              <p className="text-xs text-red-500 mt-1">
-                {errors.password.message}
-              </p>
+              <p className="text-xs text-red-500 mt-1">{errors.password}</p>
             )}
           </div>
 
-          {/* Actions */}
           <div className="flex gap-3 pt-2">
             <button
               type="button"
@@ -144,10 +139,10 @@ export default function StoreAdminModal({
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={isLoading}
               className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-lg text-sm font-medium transition-colors"
             >
-              {submitting ? "Menyimpan..." : "Simpan"}
+              {isLoading ? "Menyimpan..." : "Simpan"}
             </button>
           </div>
         </form>

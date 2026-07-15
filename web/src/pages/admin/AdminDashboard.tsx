@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Users, ShieldCheck, UserCheck, TrendingUp } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Users, ShieldCheck, UserCheck, TrendingUp, UserPlus } from "lucide-react";
 import { getAllUsers } from "@/services/userService";
 import toast from "react-hot-toast";
 
@@ -30,9 +31,22 @@ function StatCard({ label, value, icon, color }: StatCardProps) {
   );
 }
 
+function getAdminRole(): string {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return "";
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.role || "";
+  } catch {
+    return "";
+  }
+}
+
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const isSuperAdmin = getAdminRole() === "SUPER_ADMIN";
 
   useEffect(() => {
     async function fetchUsers() {
@@ -90,11 +104,22 @@ export default function AdminDashboard() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Ringkasan data pengguna aplikasi
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Ringkasan data pengguna aplikasi
+          </p>
+        </div>
+        {isSuperAdmin && (
+          <button
+            onClick={() => navigate("/admin/store-admins")}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors"
+          >
+            <UserPlus size={16} />
+            Tambah Admin
+          </button>
+        )}
       </div>
 
       {/* Stat Cards */}

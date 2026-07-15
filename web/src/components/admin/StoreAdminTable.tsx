@@ -1,11 +1,5 @@
 import { Pencil, Trash2 } from "lucide-react";
-
-interface StoreAdmin {
-  id: string;
-  name: string;
-  email: string;
-  createdAt: string;
-}
+import type { StoreAdmin } from "../../types/user";
 
 interface Props {
   admins: StoreAdmin[];

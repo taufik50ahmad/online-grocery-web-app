@@ -21,8 +21,8 @@ export default function ProductCatalog() {
     setIsLoading(true);
     try {
       const res = await getProducts(page, 12, search, selectedCategory);
-      setProducts(res.data ?? []);
-      setTotalPages(res.meta?.totalPages ?? 1);
+      setProducts(res.products ?? []);
+      setTotalPages(res.totalPages ?? 1);
     } catch {
       // silent
     } finally {

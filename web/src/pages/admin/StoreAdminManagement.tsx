@@ -86,9 +86,12 @@ export default function StoreAdminManagement() {
       await userService.deleteStoreAdmin(selectedAdmin.id);
       toast.success("Store admin deleted successfully");
       setIsDeleteOpen(false);
+      setSelectedAdmin(null);
       fetchAdmins();
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? "Failed to delete admin");
+      setIsDeleteOpen(false);
+      setSelectedAdmin(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -132,7 +135,7 @@ export default function StoreAdminManagement() {
         admins={filtered}
         onEdit={handleOpenEdit}
         onDelete={handleOpenDelete}
-        isLoading={isLoading}
+        loading={isLoading}
       />
 
       <StoreAdminModal
@@ -143,13 +146,18 @@ export default function StoreAdminManagement() {
         isLoading={isSubmitting}
       />
 
-      <DeleteConfirmModal
-        isOpen={isDeleteOpen}
-        onClose={() => setIsDeleteOpen(false)}
-        onConfirm={handleDelete}
-        adminName={selectedAdmin?.name ?? ""}
-        isLoading={isSubmitting}
-      />
+      {isDeleteOpen && (
+        <DeleteConfirmModal
+          name={selectedAdmin?.name ?? ""}
+          onClose={() => {
+            setIsDeleteOpen(false);
+            setSelectedAdmin(null);
+          }}
+          onConfirm={handleDelete}
+          submitting={isSubmitting}
+          title="Hapus Store Admin"
+        />
+      )}
     </div>
   );
 }

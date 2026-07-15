@@ -28,6 +28,7 @@ Thumbs.db
 *.ppt
 *.tmp
 *.temp
+*Feature2_Presentation.html
 
 # TypeScript
 *.tsbuildinfo
